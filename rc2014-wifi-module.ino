@@ -7,6 +7,7 @@
 const int LED_PIN = 5;
 
 #include <ESP8266WiFi.h>
+#include <ArduinoOTA.h>
 #include "gpio.h"
 #include "parse-string.h"
 #include "at-command-parser.h"
@@ -15,7 +16,13 @@ const int LED_PIN = 5;
 
 WiFiClient client;
 
+int updateProgressFilter = 0;
+
 void setup() {
+  #ifdef WIFI_IS_OFF_AT_BOOT
+    enableWiFiAtBootTime(); // can be called from anywhere with the same effect
+  #endif
+
   pinMode(LED_PIN, OUTPUT);
 
   Serial.begin(19200);
@@ -23,37 +30,79 @@ void setup() {
 
   delay(100);
 
-  Serial.println("Wifi Module for Yellow MSX\r\n");
+  Serial.println("\r\n\033[2JWifi Module for Yellow MSX (12)\r\n");
 
-  // Serial.println();
-  // Serial.println();
-  // Serial.print("Connecting to ");
-  // Serial.println(ssid);
+  WiFi.begin();
 
-  // WiFi.begin(ssid, password);
+  int count = 20;
+  while (WiFi.status() != WL_CONNECTED && count >= 0) {
+    delay(500);
+    Serial.print(".");
+    count--;
+  }
 
-  // while (WiFi.status() != WL_CONNECTED) {
-  //   delay(500);
-  //   Serial.print(".");
-  // }
+  Serial.print(WiFi.status());
 
-  // Serial.println("");
-  // Serial.println("WiFi connected");
-  // Serial.print("IP address: ");
-  // Serial.println(WiFi.localIP());
+  if (WiFi.status() != WL_CONNECTED)
+    Serial.print("\r\nWiFi not connected\r\n");
+  else
+    Serial.print("\r\nWiFi connected\r\n");
 
-  // if (client.connect("192.168.86.146", 2000)) {
-  //   Serial.println("connected to telnet session");
-  // }
+  ArduinoOTA.onStart([]() {
+    String type;
+
+    if (ArduinoOTA.getCommand() == U_FLASH) {
+      type = "application";
+    } else { // U_FS
+      type = "filesystem";
+    }
+
+    // NOTE: if updating FS this would be the place to unmount FS using FS.end()
+    Serial.print("Start updating " + type + "\r\n");
+  });
+
+  ArduinoOTA.onEnd([]() {
+    Serial.print("\r\nEnd");
+  });
+
+  ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
+    if ((updateProgressFilter & 7) == 0 || progress == total)
+      Serial.printf("\r\033[2KProgress: %u%%", (progress / (total / 100)));
+
+    updateProgressFilter++;
+  });
+
+  ArduinoOTA.onError([](ota_error_t error) {
+    Serial.printf("Error[%u]: ", error);
+    if (error == OTA_AUTH_ERROR) {
+      Serial.print("Auth Failed\r\n");
+    } else if (error == OTA_BEGIN_ERROR) {
+      Serial.print("Begin Failed\r\n");
+    } else if (error == OTA_CONNECT_ERROR) {
+      Serial.print("Connect Failed\r\n");
+    } else if (error == OTA_RECEIVE_ERROR) {
+      Serial.print("Receive Failed\r\n");
+    } else if (error == OTA_END_ERROR) {
+      Serial.print("End Failed\r\n");
+    }
+  });
+  ArduinoOTA.begin();
+
+  Serial.print("IP address: ");
+  delay(200);
+  Serial.print(WiFi.localIP());
+  Serial.print("\r\n");
+  Serial.print("READY\r\n");
 }
 
 int incomingByte = 0;
 int counter = 0;
 int timeOfLastIncomingByte = 0;
 
-
 void loop() {
   const int timeSinceLastByte = millis() - timeOfLastIncomingByte;
+
+  ArduinoOTA.handle();
 
   testForEscapeSequence(timeSinceLastByte);
 
