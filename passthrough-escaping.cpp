@@ -1,6 +1,7 @@
 #include <SoftwareSerial.h>
 #include "passthrough-escaping.h"
 #include "system-operation-mode.h"
+#include "client-connection.h"
 
 int passthroughEscapeSequence = 0;
 bool potentialEscapeSequenceForming = false;
@@ -10,7 +11,7 @@ void abortEscapeSquence() {
     return;
 
   for(int i = 0; i < passthroughEscapeSequence; i++)
-    Serial.print('+');
+    client.write('+');
   passthroughEscapeSequence = 0;
   potentialEscapeSequenceForming = false;
 }
@@ -23,7 +24,7 @@ void processPotentialEscape(const int timeSinceLastByte) {
         passthroughEscapeSequence++;
         return;
       }
-      Serial.print('+');
+      client.write('+');
       return;
 
     case 1:

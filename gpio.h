@@ -1,4 +1,3 @@
 
-#define RX_PIN 3
-
 extern void setRXOpenDrain();
+extern void setCTSFlowControl();

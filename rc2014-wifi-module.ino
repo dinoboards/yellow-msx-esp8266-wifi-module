@@ -27,10 +27,11 @@ void setup() {
 
   Serial.begin(19200);
   setRXOpenDrain();
+  setCTSFlowControl();
 
   delay(100);
 
-  Serial.println("\r\n\033[2JWifi Module for Yellow MSX (12)\r\n");
+  Serial.println("\r\n\033[2JWifi Module for Yellow MSX.\r\n");
 
   WiFi.begin();
 
@@ -40,8 +41,6 @@ void setup() {
     Serial.print(".");
     count--;
   }
-
-  Serial.print(WiFi.status());
 
   if (WiFi.status() != WL_CONNECTED)
     Serial.print("\r\nWiFi not connected\r\n");
@@ -119,7 +118,7 @@ void loop() {
 
     } else {
       abortEscapeSquence();
-      Serial.print((char)incomingByte);
+      client.write((char)incomingByte);
     }
 
     timeOfLastIncomingByte = millis();
@@ -130,8 +129,9 @@ void loop() {
       digitalWrite(LED_PIN, LOW);    // turn the LED off
   }
 
-  // if( client.available() > 0 ) {
-  //   char c = client.read();
-  //   Serial.print(c);
-  // }
+  if( systemState == passthroughMode)
+    if( client.available() > 0 ) {
+      char c = client.read();
+      Serial.print(c);
+    }
 }
