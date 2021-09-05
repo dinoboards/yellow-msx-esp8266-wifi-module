@@ -1,3 +1,5 @@
+
+
 /*********
   Yellow MSX for RC2014
   RC2014 Wifi Module
@@ -8,6 +10,7 @@ const int LED_PIN = 5;
 
 #include <ESP8266WiFi.h>
 #include <ArduinoOTA.h>
+#include <ezTime.h>
 #include "gpio.h"
 #include "parse-string.h"
 #include "at-command-parser.h"
@@ -15,7 +18,6 @@ const int LED_PIN = 5;
 #include "system-operation-mode.h"
 
 WiFiClient client;
-
 int updateProgressFilter = 0;
 
 void setup() {
@@ -28,8 +30,6 @@ void setup() {
   Serial.begin(19200);
   setRXOpenDrain();
   setCTSFlowControl();
-
-  delay(100);
 
   Serial.println("\r\n\033[2JWifi Module for Yellow MSX.\r\n");
 
@@ -45,7 +45,7 @@ void setup() {
   if (WiFi.status() != WL_CONNECTED)
     Serial.print("\r\nWiFi not connected\r\n");
   else
-    Serial.print("\r\nWiFi connected\r\n");
+    Serial.printf("\r\nWiFi connected to %s\r\n", WiFi.SSID());
 
   ArduinoOTA.onStart([]() {
     String type;
@@ -87,8 +87,18 @@ void setup() {
   });
   ArduinoOTA.begin();
 
+
+	waitForSync();
+
+	Serial.println("UTC: " + UTC.dateTime());
+
+	Timezone myTimeZone;
+	myTimeZone.setLocation("Australia/Melbourne");
+	Serial.print("Local Time is: " + myTimeZone.dateTime());
+  Serial.print("\r\n");
+
+
   Serial.print("IP address: ");
-  delay(200);
   Serial.print(WiFi.localIP());
   Serial.print("\r\n");
   Serial.print("READY\r\n");
