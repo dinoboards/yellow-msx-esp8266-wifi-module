@@ -6,6 +6,8 @@
 const bool commandEcho = true;
 String lineBuffer = "";
 
+#define BACKSPACE 8
+
 void processPotentialCommand() {
   String lineLower = String(lineBuffer);
 
@@ -40,6 +42,13 @@ void processCommandByte(char incomingByte) {
   if (incomingByte == 13) {
     processPotentialCommand();
   } else {
+    if (incomingByte == BACKSPACE) {
+      lineBuffer = lineBuffer.substring(0, lineBuffer.length() - 1);
+
+      if (commandEcho)
+        Serial.print("\b \b");
+    }
+
     if (incomingByte >= 32 && incomingByte < 127) {
       lineBuffer += ((char)incomingByte);
 
