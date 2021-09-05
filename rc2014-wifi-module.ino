@@ -8,22 +8,22 @@
 
 const int LED_PIN = 5;
 
-#include <ESP8266WiFi.h>
-#include <ArduinoOTA.h>
-#include <ezTime.h>
+#include "at-command-parser.h"
 #include "gpio.h"
 #include "parse-string.h"
-#include "at-command-parser.h"
 #include "passthrough-escaping.h"
 #include "system-operation-mode.h"
+#include <ArduinoOTA.h>
+#include <ESP8266WiFi.h>
+#include <ezTime.h>
 
 WiFiClient client;
 int updateProgressFilter = 0;
 
 void setup() {
-  #ifdef WIFI_IS_OFF_AT_BOOT
-    enableWiFiAtBootTime(); // can be called from anywhere with the same effect
-  #endif
+#ifdef WIFI_IS_OFF_AT_BOOT
+  enableWiFiAtBootTime(); // can be called from anywhere with the same effect
+#endif
 
   pinMode(LED_PIN, OUTPUT);
 
@@ -60,9 +60,7 @@ void setup() {
     Serial.print("Start updating " + type + "\r\n");
   });
 
-  ArduinoOTA.onEnd([]() {
-    Serial.print("\r\nEnd");
-  });
+  ArduinoOTA.onEnd([]() { Serial.print("\r\nEnd"); });
 
   ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
     if ((updateProgressFilter & 7) == 0 || progress == total)
@@ -87,16 +85,14 @@ void setup() {
   });
   ArduinoOTA.begin();
 
+  waitForSync();
 
-	waitForSync();
+  Serial.println("UTC: " + UTC.dateTime());
 
-	Serial.println("UTC: " + UTC.dateTime());
-
-	Timezone myTimeZone;
-	myTimeZone.setLocation("Australia/Melbourne");
-	Serial.print("Local Time is: " + myTimeZone.dateTime());
+  Timezone myTimeZone;
+  myTimeZone.setLocation("Australia/Melbourne");
+  Serial.print("Local Time is: " + myTimeZone.dateTime());
   Serial.print("\r\n");
-
 
   Serial.print("IP address: ");
   Serial.print(WiFi.localIP());
@@ -116,7 +112,7 @@ void loop() {
   testForEscapeSequence(timeSinceLastByte);
 
   if (Serial.available() > 0) {
-    digitalWrite(LED_PIN, HIGH);   // turn the LED on
+    digitalWrite(LED_PIN, HIGH); // turn the LED on
     counter = 100;
 
     incomingByte = Serial.read();
@@ -133,14 +129,14 @@ void loop() {
 
     timeOfLastIncomingByte = millis();
   } else {
-   if (counter > 0)
-    counter -= 1;
+    if (counter > 0)
+      counter -= 1;
     if (counter == 0)
-      digitalWrite(LED_PIN, LOW);    // turn the LED off
+      digitalWrite(LED_PIN, LOW); // turn the LED off
   }
 
-  if( systemState == passthroughMode)
-    if( client.available() > 0 ) {
+  if (systemState == passthroughMode)
+    if (client.available() > 0) {
       char c = client.read();
       Serial.print(c);
     }

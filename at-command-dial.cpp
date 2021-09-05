@@ -1,8 +1,8 @@
-#include <SoftwareSerial.h>
-#include "system-operation-mode.h"
-#include "at-command-parser.h"
 #include "at-command-dial.h"
+#include "at-command-parser.h"
 #include "client-connection.h"
+#include "system-operation-mode.h"
+#include <SoftwareSerial.h>
 
 String hostName = "";
 int portNumber = 2000;
@@ -13,8 +13,8 @@ void atCommandDial() {
   int hostPortSeperatorPosition = hostName.indexOf(':');
 
   if (hostPortSeperatorPosition != -1) {
-    Serial.print("\r\n'" + hostName.substring(hostPortSeperatorPosition+1) + "'\r\n");
-    portNumber = hostName.substring(hostPortSeperatorPosition+1).toInt();
+    Serial.print("\r\n'" + hostName.substring(hostPortSeperatorPosition + 1) + "'\r\n");
+    portNumber = hostName.substring(hostPortSeperatorPosition + 1).toInt();
     hostName = hostName.substring(0, hostPortSeperatorPosition);
   }
 
@@ -27,7 +27,6 @@ void atCommandDial() {
   if (client.connect(hostName, portNumber)) {
     Serial.print("connected\r\n");
     systemState = passthroughMode;
-  }
-  else
+  } else
     Serial.print("failed to connect\r\n");
 }

@@ -1,13 +1,13 @@
-#include <SoftwareSerial.h>
-#include "system-operation-mode.h"
-#include "at-command-parser.h"
 #include "at-command-wifi.h"
+#include "at-command-parser.h"
 #include "parse-string.h"
+#include "system-operation-mode.h"
 #include <ESP8266WiFi.h>
+#include <SoftwareSerial.h>
 
 void atCommandWifi() {
-  char ssid[MAX_COMMAND_ARG_SIZE+1];
-  char password[MAX_COMMAND_ARG_SIZE+1];
+  char ssid[MAX_COMMAND_ARG_SIZE + 1];
+  char password[MAX_COMMAND_ARG_SIZE + 1];
   const int next = parseString(&lineBuffer[9], ssid) + 9;
   parseString(&lineBuffer[next], password);
 

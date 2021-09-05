@@ -1,39 +1,40 @@
-#include <SoftwareSerial.h>
 #include "at-command-parser.h"
 #include "at-command-dial.h"
 #include "at-command-wifi.h"
+#include <SoftwareSerial.h>
 
 const bool commandEcho = true;
 String lineBuffer = "";
 
 void processPotentialCommand() {
-  if (lineBuffer == "AT") {
-    Serial.print("\r\nOK\r\n");
-    goto done;
-  }
+  String lineLower = String(lineBuffer);
 
-  if(lineBuffer == "") {
+  if (lineBuffer == "") {
     Serial.print("\r\n");
     goto done;
   }
 
-  if (lineBuffer.startsWith("ATD")) {
+  lineLower.toLowerCase();
+
+  if (lineLower == "at") {
+    Serial.print("\r\nOK\r\n");
+    goto done;
+  }
+
+  if (lineLower.startsWith("atd")) {
     atCommandDial();
     goto done;
   }
-  if(lineBuffer.startsWith("AT+CWJAP=")) {
+  if (lineLower.startsWith("at+cwjap=")) {
     atCommandWifi();
     goto done;
   }
 
-  Serial.print("\r\nUnknown Command '");
-  Serial.print(lineBuffer);
-  Serial.println();
+  Serial.printf("\r\nUnknown Command '%s'\r\n", lineBuffer);
 
 done:
   lineBuffer = "";
 }
-
 
 void processCommandByte(char incomingByte) {
   if (incomingByte == 13) {
