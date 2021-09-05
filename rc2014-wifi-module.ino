@@ -104,6 +104,8 @@ int incomingByte = 0;
 int counter = 0;
 int timeOfLastIncomingByte = 0;
 
+bool wasPassthroughMode = false;
+
 void loop() {
   const int timeSinceLastByte = millis() - timeOfLastIncomingByte;
 
@@ -111,14 +113,21 @@ void loop() {
 
   testForEscapeSequence(timeSinceLastByte);
 
+  if (wasPassthroughMode && !isPassthroughMode()) {
+    Serial.print("\r\nREADY\r\n");
+  }
+
+  wasPassthroughMode = isPassthroughMode();
+
   if (Serial.available() > 0) {
     digitalWrite(LED_PIN, HIGH); // turn the LED on
     counter = 100;
 
     incomingByte = Serial.read();
 
-    if (systemState == commandMode)
+    if (isCommandMode())
       processCommandByte(incomingByte);
+
     else if (incomingByte == '+') {
       processPotentialEscape(timeSinceLastByte);
 
@@ -135,9 +144,8 @@ void loop() {
       digitalWrite(LED_PIN, LOW); // turn the LED off
   }
 
-  if (systemState == passthroughMode)
+  if (isPassthroughMode())
     if (client.available() > 0) {
-      char c = client.read();
-      Serial.print(c);
+      Serial.print(client.read());
     }
 }

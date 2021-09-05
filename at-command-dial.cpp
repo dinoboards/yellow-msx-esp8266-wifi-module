@@ -26,7 +26,6 @@ void atCommandDial() {
 
   if (client.connect(hostName, portNumber)) {
     Serial.print("connected\r\n");
-    systemState = passthroughMode;
   } else
     Serial.print("failed to connect\r\n");
 }
