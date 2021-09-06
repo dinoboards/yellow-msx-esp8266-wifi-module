@@ -6,7 +6,8 @@
   Serial to (telnet) TCP bridge
 *********/
 
-const int LED_PIN = 5;
+const int SERIAL_RX_LED = 5;
+const int SERIAL_TX_LED = 4;
 
 #include "at-command-parser.h"
 #include "gpio.h"
@@ -25,7 +26,8 @@ void setup() {
   enableWiFiAtBootTime(); // can be called from anywhere with the same effect
 #endif
 
-  pinMode(LED_PIN, OUTPUT);
+  pinMode(SERIAL_RX_LED, OUTPUT);
+  pinMode(SERIAL_TX_LED, OUTPUT);
 
   Serial.begin(19200);
   setRXOpenDrain();
@@ -101,7 +103,8 @@ void setup() {
 }
 
 int incomingByte = 0;
-int counter = 0;
+int rxLedHoldCounter = 0;
+int txLedHoldCounter = 0;
 int timeOfLastIncomingByte = 0;
 
 bool wasPassthroughMode = false;
@@ -120,8 +123,8 @@ void loop() {
   wasPassthroughMode = isPassthroughMode();
 
   if (Serial.available() > 0) {
-    digitalWrite(LED_PIN, HIGH); // turn the LED on
-    counter = 100;
+    digitalWrite(SERIAL_RX_LED, HIGH); // turn the LED on
+    rxLedHoldCounter = 5;
 
     incomingByte = Serial.read();
 
@@ -138,14 +141,24 @@ void loop() {
 
     timeOfLastIncomingByte = millis();
   } else {
-    if (counter > 0)
-      counter -= 1;
-    if (counter == 0)
-      digitalWrite(LED_PIN, LOW); // turn the LED off
+    if (rxLedHoldCounter > 0)
+      rxLedHoldCounter -= 1;
+    if (rxLedHoldCounter == 0)
+      digitalWrite(SERIAL_RX_LED, LOW); // turn the LED off
   }
 
   if (isPassthroughMode())
     if (client.available() > 0) {
-      Serial.print(client.read());
+
+      digitalWrite(SERIAL_TX_LED, HIGH); // turn the LED on
+      txLedHoldCounter = 20;
+
+      const char c = client.read();
+      Serial.print(c);
     }
+
+  if (txLedHoldCounter > 0)
+    txLedHoldCounter -= 1;
+  if (txLedHoldCounter == 0)
+    digitalWrite(SERIAL_TX_LED, LOW); // turn the LED off
 }

@@ -49,7 +49,7 @@ void testForEscapeSequence(const int timeSinceLastByte) {
   }
 
   if (passthroughEscapeSequence == 3 && timeSinceLastByte > 1000) {
-    Serial.print("\r\nREADY\r\n");
+    // Serial.print("\r\nREADY\r\n");
     client.stop();
     passthroughEscapeSequence = 0;
   }

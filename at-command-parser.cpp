@@ -27,8 +27,14 @@ void processPotentialCommand() {
     atCommandDial();
     goto done;
   }
+
   if (lineLower.startsWith("at+cwjap=")) {
     atCommandWifi();
+    goto done;
+  }
+
+  if (lineLower == "+++") {
+    Serial.print("\r\nOK\r\n");
     goto done;
   }
 
