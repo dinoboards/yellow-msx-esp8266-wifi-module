@@ -1,7 +1,7 @@
 #include "at-command-dial.h"
 #include "at-command-parser.h"
 #include "client-connection.h"
-#include "system-operation-mode.h"
+#include "gpio.h"
 #include <SoftwareSerial.h>
 
 String hostName = "";
@@ -26,6 +26,7 @@ void atCommandDial() {
 
   if (client.connect(hostName, portNumber)) {
     Serial.print("connected\r\n");
+    tcpConnectedLedOn();
   } else
     Serial.print("failed to connect\r\n");
 }

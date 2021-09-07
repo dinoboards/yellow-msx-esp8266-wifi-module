@@ -6,8 +6,6 @@
   Serial to (telnet) TCP bridge
 *********/
 
-const int SERIAL_RX_LED = 5;
-const int SERIAL_TX_LED = 4;
 
 #include "at-command-parser.h"
 #include "gpio.h"
@@ -21,19 +19,22 @@ const int SERIAL_TX_LED = 4;
 WiFiClient client;
 int updateProgressFilter = 0;
 
+
 void setup() {
 #ifdef WIFI_IS_OFF_AT_BOOT
   enableWiFiAtBootTime(); // can be called from anywhere with the same effect
 #endif
 
-  pinMode(SERIAL_RX_LED, OUTPUT);
-  pinMode(SERIAL_TX_LED, OUTPUT);
-
   Serial.begin(19200);
   setRXOpenDrain();
-  setCTSFlowControl();
+  setCTSFlowControlOff();  //Dont wont to have setup blocked, if serial not able to send
+
+  initLeds();
 
   Serial.println("\r\n\033[2JWifi Module for Yellow MSX.\r\n");
+
+  if ((WiFi.SSID() == "") || (WiFi.SSID() == NULL))
+    return;
 
   WiFi.begin();
 
@@ -44,10 +45,14 @@ void setup() {
     count--;
   }
 
-  if (WiFi.status() != WL_CONNECTED)
+  if (WiFi.status() != WL_CONNECTED) {
     Serial.print("\r\nWiFi not connected\r\n");
+    return;
+  }
   else
     Serial.printf("\r\nWiFi connected to %s\r\n", WiFi.SSID());
+
+  wifiLedOn();
 
   ArduinoOTA.onStart([]() {
     String type;
@@ -87,8 +92,9 @@ void setup() {
   });
   ArduinoOTA.begin();
 
+  Serial.print("Syncing time ...");
   waitForSync();
-
+  Serial.print(" DONE\r\n");
   Serial.println("UTC: " + UTC.dateTime());
 
   Timezone myTimeZone;
@@ -100,17 +106,19 @@ void setup() {
   Serial.print(WiFi.localIP());
   Serial.print("\r\n");
   Serial.print("READY\r\n");
+
+  setCTSFlowControlOn();
 }
 
 int incomingByte = 0;
-int rxLedHoldCounter = 0;
-int txLedHoldCounter = 0;
 int timeOfLastIncomingByte = 0;
 
 bool wasPassthroughMode = false;
 
 void loop() {
   const int timeSinceLastByte = millis() - timeOfLastIncomingByte;
+
+  ledLoop();
 
   ArduinoOTA.handle();
 
@@ -123,13 +131,14 @@ void loop() {
   wasPassthroughMode = isPassthroughMode();
 
   if (Serial.available() > 0) {
-    digitalWrite(SERIAL_RX_LED, HIGH); // turn the LED on
-    rxLedHoldCounter = 5;
+    rxLedFlash();
 
     incomingByte = Serial.read();
 
-    if (isCommandMode())
+    if (isCommandMode()) {
+      txLedFlash();
       processCommandByte(incomingByte);
+    }
 
     else if (incomingByte == '+') {
       processPotentialEscape(timeSinceLastByte);
@@ -140,25 +149,12 @@ void loop() {
     }
 
     timeOfLastIncomingByte = millis();
-  } else {
-    if (rxLedHoldCounter > 0)
-      rxLedHoldCounter -= 1;
-    if (rxLedHoldCounter == 0)
-      digitalWrite(SERIAL_RX_LED, LOW); // turn the LED off
   }
 
   if (isPassthroughMode())
     if (client.available() > 0) {
-
-      digitalWrite(SERIAL_TX_LED, HIGH); // turn the LED on
-      txLedHoldCounter = 20;
-
+      txLedFlash();
       const char c = client.read();
       Serial.print(c);
     }
-
-  if (txLedHoldCounter > 0)
-    txLedHoldCounter -= 1;
-  if (txLedHoldCounter == 0)
-    digitalWrite(SERIAL_TX_LED, LOW); // turn the LED off
 }

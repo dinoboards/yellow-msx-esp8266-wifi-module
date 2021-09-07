@@ -2,10 +2,13 @@
 #include "at-command-parser.h"
 #include "parse-string.h"
 #include "system-operation-mode.h"
+#include "gpio.h"
 #include <ESP8266WiFi.h>
 #include <SoftwareSerial.h>
 
 void atCommandWifi() {
+  allLedsOff();
+
   char ssid[MAX_COMMAND_ARG_SIZE + 1];
   char password[MAX_COMMAND_ARG_SIZE + 1];
   const int next = parseString(&lineBuffer[9], ssid) + 9;
@@ -32,6 +35,7 @@ void atCommandWifi() {
     return;
   }
 
+  wifiLedOn();
   WiFi.setAutoConnect(true);
   WiFi.setAutoReconnect(true);
 

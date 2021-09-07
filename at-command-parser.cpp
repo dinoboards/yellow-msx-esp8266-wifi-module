@@ -1,6 +1,7 @@
 #include "at-command-parser.h"
 #include "at-command-dial.h"
 #include "at-command-wifi.h"
+#include "at-command-hangup.h"
 #include <SoftwareSerial.h>
 
 const bool commandEcho = true;
@@ -30,6 +31,11 @@ void processPotentialCommand() {
 
   if (lineLower.startsWith("at+cwjap=")) {
     atCommandWifi();
+    goto done;
+  }
+
+  if (lineLower == "ath") {
+    atCommandHangup();
     goto done;
   }
 
