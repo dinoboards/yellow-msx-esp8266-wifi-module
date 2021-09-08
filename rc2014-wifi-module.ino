@@ -6,8 +6,8 @@
   Serial to (telnet) TCP bridge
 *********/
 
-
 #include "at-command-parser.h"
+#include "at-command-time.h"
 #include "gpio.h"
 #include "parse-string.h"
 #include "passthrough-escaping.h"
@@ -19,7 +19,6 @@
 WiFiClient client;
 int updateProgressFilter = 0;
 
-
 void setup() {
 #ifdef WIFI_IS_OFF_AT_BOOT
   enableWiFiAtBootTime(); // can be called from anywhere with the same effect
@@ -27,7 +26,7 @@ void setup() {
 
   Serial.begin(19200);
   setRXOpenDrain();
-  setCTSFlowControlOff();  //Dont wont to have setup blocked, if serial not able to send
+  setCTSFlowControlOff(); // Dont wont to have setup blocked, if serial not able to send
 
   initLeds();
 
@@ -48,8 +47,7 @@ void setup() {
   if (WiFi.status() != WL_CONNECTED) {
     Serial.print("\r\nWiFi not connected\r\n");
     return;
-  }
-  else
+  } else
     Serial.printf("\r\nWiFi connected to %s\r\n", WiFi.SSID());
 
   wifiLedOn();
@@ -93,26 +91,24 @@ void setup() {
   ArduinoOTA.begin();
 
   Serial.print("Syncing time ...");
-  waitForSync();
+  timezoneSetup();
   Serial.print(" DONE\r\n");
   Serial.println("UTC: " + UTC.dateTime());
-
-  Timezone myTimeZone;
-  myTimeZone.setLocation("Australia/Melbourne");
+  delay(250); //as we dont have flow control - give the RC2014 time to consume serial data
   Serial.print("Local Time is: " + myTimeZone.dateTime());
   Serial.print("\r\n");
 
+  delay(250); //as we dont have flow control - give the RC2014 time to consume serial data
   Serial.print("IP address: ");
   Serial.print(WiFi.localIP());
-  Serial.print("\r\n");
-  Serial.print("READY\r\n");
+  delay(250); //as we dont have flow control - give the RC2014 time to consume serial data
+  Serial.print("\r\nREADY\r\n");
 
   setCTSFlowControlOn();
 }
 
 int incomingByte = 0;
 int timeOfLastIncomingByte = 0;
-
 bool wasPassthroughMode = false;
 
 void loop() {
@@ -124,8 +120,14 @@ void loop() {
 
   testForEscapeSequence(timeSinceLastByte);
 
-  if (wasPassthroughMode && !isPassthroughMode()) {
+  if (isPassthroughMode() && !client.connected()) {
     Serial.print("\r\nREADY\r\n");
+    operationMode = CommandMode;
+
+    if (WiFi.status() != WL_CONNECTED)
+      wifiLedOff();
+    else
+      wifiLedOn();
   }
 
   wasPassthroughMode = isPassthroughMode();

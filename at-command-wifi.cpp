@@ -14,7 +14,7 @@ void atCommandWifi() {
   const int next = parseString(&lineBuffer[9], ssid) + 9;
   parseString(&lineBuffer[next], password);
 
-  Serial.println("\r\nAttempting to connect to wifi with ");
+  Serial.println("Attempting to connect to wifi with ");
   Serial.print(ssid);
   Serial.print(" ");
   delay(100);

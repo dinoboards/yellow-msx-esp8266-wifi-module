@@ -9,4 +9,5 @@ extern void allLedsOff();
 extern void rxLedFlash();
 extern void txLedFlash();
 extern void wifiLedOn();
+extern void wifiLedOff();
 extern void tcpConnectedLedOn();

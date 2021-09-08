@@ -8,5 +8,5 @@ void atCommandHangup() {
   client.stop();
   wifiLedOn();
 
-  Serial.print("\r\nOK\r\n");
+  Serial.print("OK\r\n");
 }

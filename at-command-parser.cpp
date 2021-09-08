@@ -1,26 +1,33 @@
 #include "at-command-parser.h"
 #include "at-command-dial.h"
-#include "at-command-wifi.h"
 #include "at-command-hangup.h"
+#include "at-command-time.h"
+#include "at-command-wifi.h"
 #include <SoftwareSerial.h>
 
-const bool commandEcho = true;
+bool commandEcho = true;
 String lineBuffer = "";
 
 #define BACKSPACE 8
 
+
 void processPotentialCommand() {
   String lineLower = String(lineBuffer);
+  lineLower.toLowerCase();
 
-  if (lineBuffer == "") {
-    Serial.print("\r\n");
+  if (lineLower == "ate0") {
+    commandEcho = false;
     goto done;
   }
 
-  lineLower.toLowerCase();
+  if (commandEcho)
+    Serial.print("\r\n");
+
+  if (lineBuffer == "")
+    goto done;
 
   if (lineLower == "at") {
-    Serial.print("\r\nOK\r\n");
+    Serial.print("\OK\r\n");
     goto done;
   }
 
@@ -39,12 +46,29 @@ void processPotentialCommand() {
     goto done;
   }
 
-  if (lineLower == "+++") {
-    Serial.print("\r\nOK\r\n");
+  if (lineLower.startsWith("at+locale=")) {
+    atCommandSetLocale();
     goto done;
   }
 
-  Serial.printf("\r\nUnknown Command '%s'\r\n", lineBuffer);
+  if (lineLower == "at+time?") {
+    atCommandGetTime();
+    goto done;
+  }
+
+
+  if (lineLower == "ate1") {
+    commandEcho = true;
+    Serial.print("OK\r\n");
+    goto done;
+  }
+
+  if (lineLower == "+++") {
+    Serial.print("OK\r\n");
+    goto done;
+  }
+
+  Serial.printf("Unknown Command '%s'\r\n", lineBuffer);
 
 done:
   lineBuffer = "";

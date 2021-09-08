@@ -1,7 +1,14 @@
 #ifndef __SYSTEM_OPERATION_MODE
 #define __SYSTEM_OPERATION_MODE
 
-#define isCommandMode() (!client.connected())
-#define isPassthroughMode() (client.connected())
+enum OperationMode {
+  CommandMode,
+  PassthroughMode
+};
+
+extern OperationMode operationMode;
+
+#define isCommandMode() (operationMode == CommandMode)
+#define isPassthroughMode() (operationMode == PassthroughMode)
 
 #endif

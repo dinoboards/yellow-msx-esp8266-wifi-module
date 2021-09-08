@@ -72,6 +72,12 @@ void tcpConnectedLedOn() {
   digitalWrite(MAIN_LED_PIN, LOW);
 }
 
+void wifiLedOff() {
+  mainLedState = Off;
+  digitalWrite(MAIN_LED_PIN, HIGH);
+  mainLedOn = false;
+}
+
 void wifiLedOn() {
   mainLedState = TcpConnection;
   digitalWrite(MAIN_LED_PIN, LOW);
