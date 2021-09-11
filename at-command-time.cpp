@@ -9,8 +9,8 @@
 Timezone myTimeZone;
 
 void timezoneSetup() {
-  waitForSync();
-  myTimeZone.setLocation("Australia/Melbourne");
+  waitForSync(2);
+  myTimeZone.setCache(0);
 }
 
 void atCommandSetLocale() {
@@ -21,7 +21,17 @@ void atCommandSetLocale() {
 }
 
 void atCommandGetTime() {
-  waitForSync();
-  Serial.print(myTimeZone.dateTime(ISO8601));
-  Serial.print("\r\nOK\r\n");
+  if (WiFi.status() != WL_CONNECTED) {
+    Serial.print("ERROR NO WIFI\r\n");
+    return;
+  }
+
+  const bool r = waitForSync(2);
+  if (r) {
+    Serial.print(myTimeZone.dateTime(ISO8601));
+    Serial.print("\r\nOK\r\n");
+    return;
+  }
+
+  Serial.print("ERROR\r\n");
 }

@@ -34,6 +34,8 @@ void initLeds() {
 }
 
 void allLedsOff() {
+  mainLedState = Off;
+
   digitalWrite(SERIAL_RX_LED, LOW);
   digitalWrite(SERIAL_TX_LED, LOW);
   digitalWrite(MAIN_LED_PIN, HIGH);

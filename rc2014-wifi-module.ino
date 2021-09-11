@@ -68,9 +68,11 @@ void setup() {
   ArduinoOTA.onEnd([]() { Serial.print("\r\nEnd"); });
 
   ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
-    if ((updateProgressFilter & 7) == 0 || progress == total)
+    if ((updateProgressFilter & 7) == 0 || progress == total) {
+      setCTSFlowControlOff(); // Dont wont to blocked, if serial not able to send
       Serial.printf("\r\033[2KProgress: %u%%", (progress / (total / 100)));
-
+      setCTSFlowControlOn(); // Dont wont to blocked, if serial not able to send
+    }
     updateProgressFilter++;
   });
 
@@ -93,16 +95,21 @@ void setup() {
   Serial.print("Syncing time ...");
   timezoneSetup();
   Serial.print(" DONE\r\n");
-  Serial.println("UTC: " + UTC.dateTime());
-  delay(250); //as we dont have flow control - give the RC2014 time to consume serial data
-  Serial.print("Local Time is: " + myTimeZone.dateTime());
-  Serial.print("\r\n");
 
   delay(250); //as we dont have flow control - give the RC2014 time to consume serial data
-  Serial.print("IP address: ");
-  Serial.print(WiFi.localIP());
+  Serial.print("Local Time is: ");
+  Serial.print(myTimeZone.dateTime());
+
   delay(250); //as we dont have flow control - give the RC2014 time to consume serial data
-  Serial.print("\r\nREADY\r\n");
+  Serial.print("\r\nIP address: ");
+  Serial.print(WiFi.localIP());
+
+  delay(250); //as we dont have flow control - give the RC2014 time to consume serial data
+  Serial.print("\r\nCPU Speed: ");
+  Serial.print(ESP.getCpuFreqMHz());
+
+  delay(250); //as we dont have flow control - give the RC2014 time to consume serial data
+  Serial.print("MHz\r\nREADY\r\n");
 
   setCTSFlowControlOn();
 }
