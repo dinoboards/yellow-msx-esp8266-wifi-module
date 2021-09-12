@@ -8,6 +8,7 @@
 
 #include "at-command-parser.h"
 #include "at-command-time.h"
+#include "at-command-web-get.h"
 #include "gpio.h"
 #include "parse-string.h"
 #include "passthrough-escaping.h"
@@ -144,7 +145,12 @@ void loop() {
 
     incomingByte = Serial.read();
 
-    if (isCommandMode()) {
+    if (isXModemSendingMode()) {
+      txLedFlash();
+      xmodemReceiveChar(incomingByte);
+    }
+
+    else if (isCommandMode()) {
       txLedFlash();
       processCommandByte(incomingByte);
     }
@@ -158,7 +164,9 @@ void loop() {
     }
 
     timeOfLastIncomingByte = millis();
-  }
+  } else
+    if (isXModemSendingMode())
+      xmodemLoop();
 
   if (isPassthroughMode())
     if (client.available() > 0) {

@@ -3,6 +3,7 @@
 #include "at-command-hangup.h"
 #include "at-command-time.h"
 #include "at-command-wifi.h"
+#include "at-command-web-get.h"
 #include <SoftwareSerial.h>
 
 bool commandEcho = true;
@@ -53,6 +54,11 @@ void processPotentialCommand() {
 
   if (lineLower == "at+time?") {
     atCommandGetTime();
+    goto done;
+  }
+
+  if (lineLower.startsWith("at+wget")) {
+    atCommandWebGet();
     goto done;
   }
 

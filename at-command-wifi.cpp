@@ -14,13 +14,6 @@ void atCommandWifi() {
   const int next = parseString(&lineBuffer[9], ssid) + 9;
   parseString(&lineBuffer[next], password);
 
-  Serial.println("Attempting to connect to wifi with ");
-  Serial.print(ssid);
-  Serial.print(" ");
-  delay(100);
-  Serial.print(password);
-  Serial.print("\r\n\r\n");
-
   WiFi.begin(ssid, password);
 
   int count = 20;
@@ -39,10 +32,7 @@ void atCommandWifi() {
   WiFi.setAutoConnect(true);
   WiFi.setAutoReconnect(true);
 
-  Serial.print("IP address: ");
-  delay(200);
+  Serial.print("\r\nIP address: ");
   Serial.print(WiFi.localIP());
-  Serial.print("\r\n");
-
   Serial.print("\r\nOK\r\n");
 }
