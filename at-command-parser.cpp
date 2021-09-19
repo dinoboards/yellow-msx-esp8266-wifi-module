@@ -62,7 +62,6 @@ void processPotentialCommand() {
     goto done;
   }
 
-
   if (lineLower == "ate1") {
     commandEcho = true;
     Serial.print("OK\r\n");

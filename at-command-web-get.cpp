@@ -177,9 +177,9 @@ void xmodemReceiveChar(unsigned char incoming) {
 }
 
 void atCommandWebGet() {
-  data = lineBuffer.substring(7);
+  const String url = lineBuffer.substring(7);
 
-  httpClient.begin(wifiClient, "http://jigsaw.w3.org/HTTP/connection.html");
+  httpClient.begin(wifiClient, url);
 
   int httpCode = httpClient.GET();
   if (httpCode <= 0) {
