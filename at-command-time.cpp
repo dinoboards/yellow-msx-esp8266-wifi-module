@@ -17,12 +17,12 @@ void atCommandSetLocale() {
   if (myTimeZone.setLocation(lineBuffer.substring(10)))
     Serial.print("OK\r\n");
   else
-    Serial.print("ERROR\r\n");
+    Serial.print("ERROR: Failed to set timezone.\r\n");
 }
 
 void atCommandGetTime() {
   if (WiFi.status() != WL_CONNECTED) {
-    Serial.print("ERROR NO WIFI\r\n");
+    Serial.print("ERROR: NO WIFI\r\n");
     return;
   }
 
@@ -33,5 +33,5 @@ void atCommandGetTime() {
     return;
   }
 
-  Serial.print("ERROR\r\n");
+  Serial.print("ERROR: Failed to sync time.\r\n");
 }

@@ -17,7 +17,10 @@ void processPotentialCommand() {
   lineLower.toLowerCase();
 
   if (lineLower == "ate0") {
+    if (commandEcho)
+      Serial.print("\r\n");
     commandEcho = false;
+    Serial.print("OK\r\n");
     goto done;
   }
 

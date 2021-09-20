@@ -53,6 +53,8 @@ void setup() {
 
   wifiLedOn();
 
+  xmodemSetup();
+
   ArduinoOTA.onStart([]() {
     String type;
 

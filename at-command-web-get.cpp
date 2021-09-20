@@ -36,10 +36,12 @@ unsigned char checksumBuf;
 int packetLen = 128;
 int timeout;
 bool oldChecksum;
-WiFiClient wifiClient;
+WiFiClient *wifiClient;
 HTTPClient httpClient;
 WiFiClient *stream;
 int fileSize;
+bool lastPacketSent;
+unsigned char nextPacketHeader;
 
 void calculateChecksums() {
   checksumBuf = 0x00;
@@ -61,30 +63,46 @@ void calculateChecksums() {
   }
 }
 
-XModemState sendPacket() {
-
+void prepareNextPacket() {
   memset(packetBuffer, EOF, 128);
 
-  if (httpClient.connected() && (fileSize > 0 || fileSize == -1)) {
-    int c = stream->readBytes(packetBuffer, std::min((size_t)fileSize, sizeof(packetBuffer)));
-    if (!c) {
-      Serial.write(CAN);
-      Serial.write(CAN);
-      Serial.write(CAN);
-      operationMode = CommandMode;
-      return XMODEMSTATE_NONE;
+  if (fileSize == 0 || lastPacketSent || !httpClient.connected()) {
+    nextPacketHeader = EOT;
+    return;
+  }
+
+  if (httpClient.connected() && fileSize == -1) {
+    int c = stream->readBytes(packetBuffer, sizeof(packetBuffer));
+    if (c == 0) {
+      nextPacketHeader = EOT;
+      return;
     }
 
-    if (fileSize > 0)
-      fileSize -= c;
+    lastPacketSent = c != sizeof(packetBuffer);
+    nextPacketHeader = SOH;
 
+    calculateChecksums();
+    return;
+  }
+
+  int c = stream->readBytes(packetBuffer, std::min((size_t)fileSize, sizeof(packetBuffer)));
+  if (!c) {
+    nextPacketHeader = CAN;
+    return;
+  }
+
+  fileSize -= c;
+  nextPacketHeader = SOH;
+  calculateChecksums();
+}
+
+XModemState sendPacket() {
+  switch (nextPacketHeader) {
+  case SOH:
     Serial.write(SOH);
     Serial.write(packetNo);
     Serial.write(~packetNo);
     Serial.write(packetBuffer, 128);
-
-    calculateChecksums();
-
     if (oldChecksum)
       Serial.write((char)checksumBuf);
     else {
@@ -92,12 +110,22 @@ XModemState sendPacket() {
       Serial.write((char)(crcBuf & 0xFF));
     }
     return XMODEMSTATE_ACK;
-  }
 
-  httpClient.end();
-  Serial.write(EOT);
-  return XMODEMSTATE_FINAL_ACK;
+  case EOT:
+    httpClient.end();
+    Serial.write(EOT);
+    return XMODEMSTATE_FINAL_ACK;
+
+  default:
+    Serial.write(CAN);
+    Serial.write(CAN);
+    Serial.write(CAN);
+    operationMode = CommandMode;
+    return XMODEMSTATE_NONE;
+  }
 }
+
+void xmodemSetup() { wifiClient = new WiFiClient(); }
 
 void xmodemLoop() {
   switch (xmodemState) {
@@ -156,6 +184,7 @@ void xmodemReceiveChar(unsigned char incoming) {
     case ACK:
       xmodemState = XMODEMSTATE_NACK;
       packetNo++;
+      prepareNextPacket();
       return;
     }
     break;
@@ -179,26 +208,30 @@ void xmodemReceiveChar(unsigned char incoming) {
 void atCommandWebGet() {
   const String url = lineBuffer.substring(7);
 
-  httpClient.begin(wifiClient, url);
+  const bool r = httpClient.begin(*wifiClient, url);
+  const bool connected = httpClient.connected();
 
   int httpCode = httpClient.GET();
   if (httpCode <= 0) {
-    Serial.print("ERROR\r\n");
+    Serial.printf("ERROR: GET '%s' returned error code: %d. (%d, %d)\r\n", url.c_str(), httpCode, (int)r, (int)connected);
     return;
   }
 
   if (httpCode != HTTP_CODE_OK) {
-    Serial.printf("[HTTP] GET... failed, error: %s\r\n", httpClient.errorToString(httpCode).c_str());
-    Serial.print("ERROR\r\n");
+    Serial.printf("ERROR: Http returned error status: %d, %s\r\n", httpCode, httpClient.errorToString(httpCode).c_str());
     return;
   }
 
+  Serial.write("OK\r\n");
+
   fileSize = httpClient.getSize();
-  stream = &wifiClient;
+  stream = wifiClient;
 
   packetNo = 1;
   tryNo = 0;
-  timeout = millis() + 30000; // Timeout in one second if we dont get 'C' or 'NAK'
+  timeout = millis() + 1000; // Timeout in one second if we dont get 'C' or 'NAK'
   operationMode = XmodemSending;
+  lastPacketSent = false;
+  prepareNextPacket();
   xmodemState = XMODEMSTATE_WAIT_FOR_START;
 }
