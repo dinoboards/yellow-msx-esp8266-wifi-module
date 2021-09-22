@@ -7,6 +7,7 @@
 #include <ESP8266HTTPClient.h>
 #include <ESP8266WiFi.h>
 #include <ESP8266WiFiMulti.h>
+#include <WiFiClientSecureBearSSL.h>
 
 #define SOH 0x01
 #define STX 0x02
@@ -205,7 +206,14 @@ void atCommandWebGet() {
 
   if (wifiClient)
     delete wifiClient;
-  wifiClient = new WiFiClient();
+
+  //https://
+  if (url[4] == 's') {
+    wifiClient = new BearSSL::WiFiClientSecure();
+    ((BearSSL::WiFiClientSecure*)wifiClient)->setInsecure();
+  }
+  else
+    wifiClient = new WiFiClient();
 
   if (httpClient)
     delete httpClient;
