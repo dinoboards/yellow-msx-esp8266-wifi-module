@@ -24,8 +24,6 @@
 
 enum XModemState { XMODEMSTATE_NONE, XMODEMSTATE_WAIT_FOR_START, XMODEMSTATE_NACK, XMODEMSTATE_ACK, XMODEMSTATE_FINAL_ACK };
 
-String data = "";
-const char *sample = "this is a sample file to send over xmodem\r\n";
 char packetBuffer[128];
 
 XModemState xmodemState = XMODEMSTATE_NONE;
@@ -38,7 +36,6 @@ int timeout;
 bool oldChecksum;
 WiFiClient *wifiClient;
 HTTPClient httpClient;
-WiFiClient *stream;
 int fileSize;
 bool lastPacketSent;
 unsigned char nextPacketHeader;
@@ -72,7 +69,7 @@ void prepareNextPacket() {
   }
 
   if (httpClient.connected() && fileSize == -1) {
-    int c = stream->readBytes(packetBuffer, sizeof(packetBuffer));
+    int c = wifiClient->readBytes(packetBuffer, sizeof(packetBuffer));
     if (c == 0) {
       nextPacketHeader = EOT;
       return;
@@ -85,7 +82,7 @@ void prepareNextPacket() {
     return;
   }
 
-  int c = stream->readBytes(packetBuffer, std::min((size_t)fileSize, sizeof(packetBuffer)));
+  int c = wifiClient->readBytes(packetBuffer, std::min((size_t)fileSize, sizeof(packetBuffer)));
   if (!c) {
     nextPacketHeader = CAN;
     return;
@@ -124,8 +121,6 @@ XModemState sendPacket() {
     return XMODEMSTATE_NONE;
   }
 }
-
-void xmodemSetup() { wifiClient = new WiFiClient(); }
 
 void xmodemLoop() {
   switch (xmodemState) {
@@ -208,6 +203,11 @@ void xmodemReceiveChar(unsigned char incoming) {
 void atCommandWebGet() {
   const String url = lineBuffer.substring(7);
 
+  if (wifiClient)
+    delete wifiClient;
+
+  wifiClient = new WiFiClient();
+
   const bool r = httpClient.begin(*wifiClient, url);
   const bool connected = httpClient.connected();
 
@@ -225,7 +225,6 @@ void atCommandWebGet() {
   Serial.write("OK\r\n");
 
   fileSize = httpClient.getSize();
-  stream = wifiClient;
 
   packetNo = 1;
   tryNo = 0;
