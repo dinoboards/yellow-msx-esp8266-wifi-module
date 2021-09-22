@@ -35,7 +35,7 @@ int packetLen = 128;
 int timeout;
 bool oldChecksum;
 WiFiClient *wifiClient;
-HTTPClient httpClient;
+HTTPClient *httpClient;
 int fileSize;
 bool lastPacketSent;
 unsigned char nextPacketHeader;
@@ -63,12 +63,12 @@ void calculateChecksums() {
 void prepareNextPacket() {
   memset(packetBuffer, EOF, 128);
 
-  if (fileSize == 0 || lastPacketSent || !httpClient.connected()) {
+  if (fileSize == 0 || lastPacketSent || !httpClient->connected()) {
     nextPacketHeader = EOT;
     return;
   }
 
-  if (httpClient.connected() && fileSize == -1) {
+  if (httpClient->connected() && fileSize == -1) {
     int c = wifiClient->readBytes(packetBuffer, sizeof(packetBuffer));
     if (c == 0) {
       nextPacketHeader = EOT;
@@ -109,7 +109,7 @@ XModemState sendPacket() {
     return XMODEMSTATE_ACK;
 
   case EOT:
-    httpClient.end();
+    httpClient->end();
     Serial.write(EOT);
     return XMODEMSTATE_FINAL_ACK;
 
@@ -205,26 +205,29 @@ void atCommandWebGet() {
 
   if (wifiClient)
     delete wifiClient;
-
   wifiClient = new WiFiClient();
 
-  const bool r = httpClient.begin(*wifiClient, url);
-  const bool connected = httpClient.connected();
+  if (httpClient)
+    delete httpClient;
+  httpClient = new HTTPClient();
 
-  int httpCode = httpClient.GET();
+  const bool r = httpClient->begin(*wifiClient, url);
+  const bool connected = httpClient->connected();
+
+  int httpCode = httpClient->GET();
   if (httpCode <= 0) {
     Serial.printf("ERROR: GET '%s' returned error code: %d. (%d, %d)\r\n", url.c_str(), httpCode, (int)r, (int)connected);
     return;
   }
 
   if (httpCode != HTTP_CODE_OK) {
-    Serial.printf("ERROR: Http returned error status: %d, %s\r\n", httpCode, httpClient.errorToString(httpCode).c_str());
+    Serial.printf("ERROR: Http returned error status: %d, %s\r\n", httpCode, httpClient->errorToString(httpCode).c_str());
     return;
   }
 
   Serial.write("OK\r\n");
 
-  fileSize = httpClient.getSize();
+  fileSize = httpClient->getSize();
 
   packetNo = 1;
   tryNo = 0;
