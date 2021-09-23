@@ -207,10 +207,14 @@ void atCommandWebGet() {
   if (wifiClient)
     delete wifiClient;
 
-  //https://
   if (url[4] == 's') {
-    wifiClient = new BearSSL::WiFiClientSecure();
-    ((BearSSL::WiFiClientSecure*)wifiClient)->setInsecure();
+    BearSSL::WiFiClientSecure* wifiSSLClient = new BearSSL::WiFiClientSecure();
+
+    if (wifiSSLClient->probeMaxFragmentLength(url, 443, 512))
+      wifiSSLClient->setBufferSizes(512, 512);
+
+    wifiSSLClient->setInsecure();
+    wifiClient = wifiSSLClient;
   }
   else
     wifiClient = new WiFiClient();
