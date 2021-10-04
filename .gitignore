@@ -1,2 +1,4 @@
-.vscode
+/.vscode/*
 tmp
+!/.vscode/arduino.json
+!/.vscode/settings.json
