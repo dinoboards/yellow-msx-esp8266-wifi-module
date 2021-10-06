@@ -16,70 +16,70 @@ void processPotentialCommand() {
   String lineLower = String(lineBuffer);
   lineLower.toLowerCase();
 
-  if (lineLower == "ate0") {
+  if (lineLower == F("ate0")) {
     if (commandEcho)
-      Serial.print("\r\n");
+      Serial.print(F("\r\n"));
     commandEcho = false;
-    Serial.print("OK\r\n");
+    Serial.print(F("OK\r\n"));
     goto done;
   }
 
   if (commandEcho)
-    Serial.print("\r\n");
+    Serial.print(F("\r\n"));
 
-  if (lineBuffer == "")
+  if (lineBuffer == F(""))
     goto done;
 
-  if (lineLower == "at") {
-    Serial.print("\OK\r\n");
+  if (lineLower == F("at")) {
+    Serial.print(F("OK\r\n"));
     goto done;
   }
 
-  if (lineLower.startsWith("atd")) {
+  if (lineLower.startsWith(F("atd"))) {
     atCommandDial();
     goto done;
   }
 
-  if (lineLower.startsWith("at+cwjap=")) {
+  if (lineLower.startsWith(F("at+cwjap="))) {
     atCommandWifi();
     goto done;
   }
 
-  if (lineLower == "ath") {
+  if (lineLower == F("ath")) {
     atCommandHangup();
     goto done;
   }
 
-  if (lineLower.startsWith("at+locale=")) {
+  if (lineLower.startsWith(F("at+locale="))) {
     atCommandSetLocale();
     goto done;
   }
 
-  if (lineLower == "at+time?") {
+  if (lineLower == F("at+time?")) {
     atCommandGetTime();
     goto done;
   }
 
-  if (lineLower.startsWith("at+wget")) {
+  if (lineLower.startsWith(F("at+wget"))) {
     atCommandWebGet();
     goto done;
   }
 
-  if (lineLower == "ate1") {
+  if (lineLower == F("ate1")) {
     commandEcho = true;
+    Serial.print(F("OK\r\n"));
+    goto done;
+  }
+
+  if (lineLower == F("+++")) {
     Serial.print("OK\r\n");
     goto done;
   }
 
-  if (lineLower == "+++") {
-    Serial.print("OK\r\n");
-    goto done;
-  }
-
-  Serial.printf("Unknown Command '%s'\r\n", lineBuffer);
+  Serial.printf(PSTR("Unknown Command '%s'\r\n"), lineBuffer);
 
 done:
-  lineBuffer = "";
+  lineBuffer = F("");
 }
 
 void processCommandByte(char incomingByte) {
@@ -90,7 +90,7 @@ void processCommandByte(char incomingByte) {
       lineBuffer = lineBuffer.substring(0, lineBuffer.length() - 1);
 
       if (commandEcho)
-        Serial.print("\b \b");
+        Serial.print(F("\b \b"));
     }
 
     if (incomingByte >= 32 && incomingByte < 127) {

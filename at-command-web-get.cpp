@@ -1,5 +1,6 @@
 #include "at-command-web-get.h"
 #include "at-command-parser.h"
+// #include "cert-store.h"
 #include "client-connection.h"
 #include "gpio.h"
 #include "system-operation-mode.h"
@@ -7,7 +8,7 @@
 #include <ESP8266HTTPClient.h>
 #include <ESP8266WiFi.h>
 #include <ESP8266WiFiMulti.h>
-#include <WiFiClientSecureBearSSL.h>
+// #include <WiFiClientSecureBearSSL.h>
 
 #define SOH 0x01
 #define STX 0x02
@@ -23,17 +24,18 @@
 #define CAN 0x18
 #define EOF 0x1a
 
-enum XModemState { XMODEMSTATE_NONE, XMODEMSTATE_WAIT_FOR_START, XMODEMSTATE_NACK, XMODEMSTATE_ACK, XMODEMSTATE_FINAL_ACK };
+// BearSSL::CertStoreP certStore;
+
+enum XModemState { XMODEMSTATE_NONE = 1, XMODEMSTATE_WAIT_FOR_START, XMODEMSTATE_NAK, XMODEMSTATE_ACK, XMODEMSTATE_FINAL_ACK };
 
 char packetBuffer[128];
 
 XModemState xmodemState = XMODEMSTATE_NONE;
 unsigned char packetNo = 0;
-int tryNo = 0;
 int crcBuf;
 unsigned char checksumBuf;
 int packetLen = 128;
-int timeout;
+unsigned long timeout;
 bool oldChecksum;
 WiFiClient *wifiClient;
 HTTPClient *httpClient;
@@ -118,6 +120,7 @@ XModemState sendPacket() {
     Serial.write(CAN);
     Serial.write(CAN);
     Serial.write(CAN);
+    Serial.print(F("Send Packet Cancelled\r\n"));
     operationMode = CommandMode;
     return XMODEMSTATE_NONE;
   }
@@ -135,20 +138,22 @@ void xmodemLoop() {
     }
     return;
 
-  case XMODEMSTATE_NACK:
+  case XMODEMSTATE_NAK:
     xmodemState = sendPacket();
-    timeout = millis() + 3000;
+    timeout = millis() + 10000;
     return;
 
   case XMODEMSTATE_ACK:
-  case XMODEMSTATE_FINAL_ACK:
-    // TODO implement resend packet???
-    if (millis() > timeout) {
-      xmodemState = XMODEMSTATE_NONE;
-      operationMode = CommandMode;
-      Serial.write(CAN);
-      Serial.write(CAN);
-      Serial.write(CAN);
+  case XMODEMSTATE_FINAL_ACK: {
+      const unsigned long m = millis();
+      if (m > timeout) {
+        Serial.write(CAN);
+        Serial.write(CAN);
+        Serial.write(CAN);
+        Serial.printf(PSTR("Timed out... %d, %ld, %ld\r\n"), (int)xmodemState, m , timeout);
+        xmodemState = XMODEMSTATE_NONE;
+        operationMode = CommandMode;
+      }
     }
     return;
   }
@@ -160,12 +165,12 @@ void xmodemReceiveChar(unsigned char incoming) {
     switch (incoming) {
     case 'C':
       oldChecksum = false;
-      xmodemState = XMODEMSTATE_NACK;
+      xmodemState = XMODEMSTATE_NAK;
       break;
 
     case NAK:
       oldChecksum = true;
-      xmodemState = XMODEMSTATE_NACK;
+      xmodemState = XMODEMSTATE_NAK;
       break;
     }
     break;
@@ -178,9 +183,13 @@ void xmodemReceiveChar(unsigned char incoming) {
       return;
 
     case ACK:
-      xmodemState = XMODEMSTATE_NACK;
+      xmodemState = XMODEMSTATE_NAK;
       packetNo++;
       prepareNextPacket();
+      return;
+
+    case NAK:
+      xmodemState = XMODEMSTATE_NAK;
       return;
     }
     break;
@@ -207,16 +216,16 @@ void atCommandWebGet() {
   if (wifiClient)
     delete wifiClient;
 
-  if (url[4] == 's') {
-    BearSSL::WiFiClientSecure* wifiSSLClient = new BearSSL::WiFiClientSecure();
+  // if (url[4] == 's') {
+  //   BearSSL::WiFiClientSecure *wifiSSLClient = new BearSSL::WiFiClientSecure();
 
-    if (wifiSSLClient->probeMaxFragmentLength(url, 443, 512))
-      wifiSSLClient->setBufferSizes(512, 512);
+  // if (wifiSSLClient->probeMaxFragmentLength(url, 443, 512))
+  //   wifiSSLClient->setBufferSizes(512, 512);
 
-    wifiSSLClient->setInsecure();
-    wifiClient = wifiSSLClient;
-  }
-  else
+  //   // wifiSSLClient->setCertStore(&certStore);
+  //   wifiSSLClient->setInsecure();
+  //   wifiClient = wifiSSLClient;
+  // } else
     wifiClient = new WiFiClient();
 
   if (httpClient)
@@ -226,24 +235,25 @@ void atCommandWebGet() {
   const bool r = httpClient->begin(*wifiClient, url);
   const bool connected = httpClient->connected();
 
+  httpClient->setReuse(false);
+
   int httpCode = httpClient->GET();
   if (httpCode <= 0) {
-    Serial.printf("ERROR: GET '%s' returned error code: %d. (%d, %d)\r\n", url.c_str(), httpCode, (int)r, (int)connected);
+    Serial.printf(PSTR("ERROR: GET '%s' returned error code: %d. (%d, %d)\r\n"), url.c_str(), httpCode, (int)r, (int)connected);
     return;
   }
 
   if (httpCode != HTTP_CODE_OK) {
-    Serial.printf("ERROR: Http returned error status: %d, %s\r\n", httpCode, httpClient->errorToString(httpCode).c_str());
+    Serial.printf(PSTR("ERROR: Http returned error status: %d, %s\r\n"), httpCode, httpClient->errorToString(httpCode).c_str());
     return;
   }
 
-  Serial.write("OK\r\n");
+  Serial.write(PSTR("OK\r\n"));
 
   fileSize = httpClient->getSize();
 
   packetNo = 1;
-  tryNo = 0;
-  timeout = millis() + 1000; // Timeout in one second if we dont get 'C' or 'NAK'
+  timeout = millis() + 10000; // Timeout in ten second if we dont get 'C' or 'NAK'
   operationMode = XmodemSending;
   lastPacketSent = false;
   prepareNextPacket();

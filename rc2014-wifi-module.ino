@@ -31,9 +31,10 @@ void setup() {
 
   initLeds();
 
-  Serial.println("\r\n\033[2JWifi Module for Yellow MSX.\r\n");
+  // Serial.println(F("\r\n\033[2JWifi Module for Yellow MSX.\r\n"));
+  Serial.println(F("\r\n"));
 
-  if ((WiFi.SSID() == "") || (WiFi.SSID() == NULL))
+  if ((WiFi.SSID() == F("")) || (WiFi.SSID() == NULL))
     return;
 
   WiFi.begin();
@@ -41,15 +42,15 @@ void setup() {
   int count = 20;
   while (WiFi.status() != WL_CONNECTED && count >= 0) {
     delay(500);
-    Serial.print(".");
+    Serial.print(F("."));
     count--;
   }
 
   if (WiFi.status() != WL_CONNECTED) {
-    Serial.print("\r\nWiFi not connected\r\n");
+    Serial.print(F("\r\nWiFi not connected\r\n"));
     return;
   } else
-    Serial.printf("\r\nWiFi connected to %s\r\n", WiFi.SSID());
+    Serial.printf(PSTR("\r\nWiFi connected to %s\r\n"), WiFi.SSID());
 
   wifiLedOn();
 
@@ -57,60 +58,62 @@ void setup() {
     String type;
 
     if (ArduinoOTA.getCommand() == U_FLASH) {
-      type = "application";
+      type = F("application");
     } else { // U_FS
-      type = "filesystem";
+      type = F("filesystem");
     }
 
     // NOTE: if updating FS this would be the place to unmount FS using FS.end()
-    Serial.print("Start updating " + type + "\r\n");
+    Serial.print(F("Start updating "));
+    Serial.print(type);
+    Serial.print(F("\r\n"));
   });
 
-  ArduinoOTA.onEnd([]() { Serial.print("\r\nEnd"); });
+  ArduinoOTA.onEnd([]() { Serial.print(F("\r\nEnd")); });
 
   ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
     if ((updateProgressFilter & 7) == 0 || progress == total) {
       setCTSFlowControlOff(); // Dont wont to blocked, if serial not able to send
-      Serial.printf("\r\033[2KProgress: %u%%", (progress / (total / 100)));
+      Serial.printf(PSTR("\r\033[2KProgress: %u%%"), (progress / (total / 100)));
       setCTSFlowControlOn(); // Dont wont to blocked, if serial not able to send
     }
     updateProgressFilter++;
   });
 
   ArduinoOTA.onError([](ota_error_t error) {
-    Serial.printf("Error[%u]: ", error);
+    Serial.printf(PSTR("Error[%u]: "), error);
     if (error == OTA_AUTH_ERROR) {
-      Serial.print("Auth Failed\r\n");
+      Serial.print(F("Auth Failed\r\n"));
     } else if (error == OTA_BEGIN_ERROR) {
-      Serial.print("Begin Failed\r\n");
+      Serial.print(F("Begin Failed\r\n"));
     } else if (error == OTA_CONNECT_ERROR) {
-      Serial.print("Connect Failed\r\n");
+      Serial.print(F("Connect Failed\r\n"));
     } else if (error == OTA_RECEIVE_ERROR) {
-      Serial.print("Receive Failed\r\n");
+      Serial.print(F("Receive Failed\r\n"));
     } else if (error == OTA_END_ERROR) {
-      Serial.print("End Failed\r\n");
+      Serial.print(F("End Failed\r\n"));
     }
   });
   ArduinoOTA.begin();
 
-  Serial.print("Syncing time ...");
+  Serial.print(F("Syncing time ..."));
   timezoneSetup();
-  Serial.print(" DONE\r\n");
+  Serial.print(F(" DONE\r\n"));
 
   delay(250); //as we dont have flow control - give the RC2014 time to consume serial data
-  Serial.print("Local Time is: ");
+  Serial.print(F("Local Time is: "));
   Serial.print(myTimeZone.dateTime());
 
   delay(250); //as we dont have flow control - give the RC2014 time to consume serial data
-  Serial.print("\r\nIP address: ");
+  Serial.print(F("\r\nIP address: "));
   Serial.print(WiFi.localIP());
 
   delay(250); //as we dont have flow control - give the RC2014 time to consume serial data
-  Serial.print("\r\nCPU Speed: ");
+  Serial.print(F("\r\nCPU Speed: "));
   Serial.print(ESP.getCpuFreqMHz());
 
   delay(250); //as we dont have flow control - give the RC2014 time to consume serial data
-  Serial.print("MHz\r\nREADY\r\n");
+  Serial.print(F("MHz\r\nREADY\r\n"));
 
   setCTSFlowControlOn();
 }
@@ -129,7 +132,7 @@ void loop() {
   testForEscapeSequence(timeSinceLastByte);
 
   if (isPassthroughMode() && !client.connected()) {
-    Serial.print("\r\nREADY\r\n");
+    Serial.print(F("\r\nREADY\r\n"));
     operationMode = CommandMode;
 
     if (WiFi.status() != WL_CONNECTED)

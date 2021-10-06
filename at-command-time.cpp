@@ -15,23 +15,23 @@ void timezoneSetup() {
 
 void atCommandSetLocale() {
   if (myTimeZone.setLocation(lineBuffer.substring(10)))
-    Serial.print("OK\r\n");
+    Serial.print(F("OK\r\n"));
   else
-    Serial.print("ERROR: Failed to set timezone.\r\n");
+    Serial.print(F("ERROR: Failed to set timezone.\r\n"));
 }
 
 void atCommandGetTime() {
   if (WiFi.status() != WL_CONNECTED) {
-    Serial.print("ERROR: NO WIFI\r\n");
+    Serial.print(F("ERROR: NO WIFI\r\n"));
     return;
   }
 
   const bool r = waitForSync(2);
   if (r) {
     Serial.print(myTimeZone.dateTime(ISO8601));
-    Serial.print("\r\nOK\r\n");
+    Serial.print(F("\r\nOK\r\n"));
     return;
   }
 
-  Serial.print("ERROR: Failed to sync time.\r\n");
+  Serial.print(F("ERROR: Failed to sync time.\r\n"));
 }

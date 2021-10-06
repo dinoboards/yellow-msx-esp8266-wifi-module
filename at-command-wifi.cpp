@@ -19,12 +19,12 @@ void atCommandWifi() {
   int count = 20;
   while (WiFi.status() != WL_CONNECTED && count >= 0) {
     delay(500);
-    Serial.print(".");
+    Serial.print(F("."));
     count--;
   }
 
   if (WiFi.status() != WL_CONNECTED) {
-    Serial.print("\r\nERROR\r\n");
+    Serial.print(F("\r\nERROR\r\n"));
     return;
   }
 
@@ -32,7 +32,7 @@ void atCommandWifi() {
   WiFi.setAutoConnect(true);
   WiFi.setAutoReconnect(true);
 
-  Serial.print("\r\nIP address: ");
+  Serial.print(F("\r\nIP address: "));
   Serial.print(WiFi.localIP());
-  Serial.print("\r\nOK\r\n");
+  Serial.print(F("\r\nOK\r\n"));
 }

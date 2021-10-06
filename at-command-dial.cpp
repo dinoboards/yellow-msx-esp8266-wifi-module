@@ -5,7 +5,7 @@
 #include "gpio.h"
 #include <SoftwareSerial.h>
 
-String hostName = "";
+String hostName;
 int portNumber = 23;
 
 void atCommandDial() {
@@ -19,16 +19,16 @@ void atCommandDial() {
     hostName = hostName.substring(0, hostPortSeperatorPosition);
   }
 
-  Serial.print("Attempting to connect to ");
+  Serial.print(F("Attempting to connect to "));
   Serial.print(hostName);
-  Serial.print(":");
+  Serial.print(':');
   Serial.print(portNumber);
-  Serial.print(" ....\r\n");
+  Serial.print(F(" ....\r\n"));
 
   if (client.connect(hostName, portNumber)) {
-    Serial.print("connected\r\n");
+    Serial.print(F("connected\r\n"));
     tcpConnectedLedOn();
     operationMode = PassthroughMode;
   } else
-    Serial.print("failed to connect\r\n");
+    Serial.print(F("failed to connect\r\n"));
 }
