@@ -4,6 +4,7 @@
 #include "at-command-time.h"
 #include "at-command-wifi.h"
 #include "at-command-web-get.h"
+#include "at-command-msx-rc2014.h"
 #include <SoftwareSerial.h>
 
 bool commandEcho = true;
@@ -76,10 +77,15 @@ void processPotentialCommand() {
     goto done;
   }
 
-  Serial.printf(PSTR("Unknown Command '%s'\r\n"), lineBuffer);
+  if (lineLower == F("at+msxrc2014")) {
+    atCommandMsxRc2014();
+    goto done;
+  }
+
+  Serial.printf(PSTR("Unknown Command '%s'\r\n"), lineBuffer.c_str());
 
 done:
-  lineBuffer = F("");
+  lineBuffer = "";
 }
 
 void processCommandByte(char incomingByte) {
@@ -94,10 +100,10 @@ void processCommandByte(char incomingByte) {
     }
 
     if (incomingByte >= 32 && incomingByte < 127) {
-      lineBuffer += ((char)incomingByte);
+      lineBuffer += incomingByte;
 
       if (commandEcho)
-        Serial.print((char)incomingByte);
+        Serial.print(incomingByte);
     }
   }
 }

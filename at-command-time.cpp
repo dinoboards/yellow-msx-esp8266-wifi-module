@@ -8,11 +8,6 @@
 
 Timezone myTimeZone;
 
-void timezoneSetup() {
-  waitForSync(2);
-  myTimeZone.setCache(0);
-}
-
 void atCommandSetLocale() {
   if (myTimeZone.setLocation(lineBuffer.substring(10)))
     Serial.print(F("OK\r\n"));

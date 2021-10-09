@@ -36,3 +36,4 @@ void atCommandWifi() {
   Serial.print(WiFi.localIP());
   Serial.print(F("\r\nOK\r\n"));
 }
+

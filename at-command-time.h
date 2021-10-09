@@ -6,7 +6,6 @@
 
 extern Timezone myTimeZone;
 
-extern void timezoneSetup();
 extern void atCommandSetLocale();
 extern void atCommandGetTime();
 

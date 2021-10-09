@@ -9,6 +9,7 @@
 #include "at-command-parser.h"
 #include "at-command-time.h"
 #include "at-command-web-get.h"
+#include "at-command-msx-rc2014.h"
 #include "gpio.h"
 #include "parse-string.h"
 #include "passthrough-escaping.h"
@@ -31,51 +32,27 @@ void setup() {
 
   initLeds();
 
-  // Serial.println(F("\r\n\033[2JWifi Module for Yellow MSX.\r\n"));
   Serial.println(F("\r\n"));
 
-  if ((WiFi.SSID() == F("")) || (WiFi.SSID() == NULL))
+  if (!(WiFi.SSID() == F("")) || (WiFi.SSID() == NULL))
+    WiFi.begin();
+
+  Serial.print(F("\033[2J"));
+
+  firmwareInit(true);
+  if (WiFi.status() != WL_CONNECTED)
     return;
-
-  WiFi.begin();
-
-  int count = 20;
-  while (WiFi.status() != WL_CONNECTED && count >= 0) {
-    delay(500);
-    Serial.print(F("."));
-    count--;
-  }
-
-  if (WiFi.status() != WL_CONNECTED) {
-    Serial.print(F("\r\nWiFi not connected\r\n"));
-    return;
-  } else
-    Serial.printf(PSTR("\r\nWiFi connected to %s\r\n"), WiFi.SSID());
-
-  wifiLedOn();
 
   ArduinoOTA.onStart([]() {
-    String type;
-
-    if (ArduinoOTA.getCommand() == U_FLASH) {
-      type = F("application");
-    } else { // U_FS
-      type = F("filesystem");
-    }
-
-    // NOTE: if updating FS this would be the place to unmount FS using FS.end()
-    Serial.print(F("Start updating "));
-    Serial.print(type);
-    Serial.print(F("\r\n"));
+    Serial.print(F("Updating ESP8266 Firmware\r\n"));
   });
 
-  ArduinoOTA.onEnd([]() { Serial.print(F("\r\nEnd")); });
+  ArduinoOTA.onEnd([]() { Serial.print(F("\r\nCompleted Download.\r\n")); });
 
   ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
     if ((updateProgressFilter & 7) == 0 || progress == total) {
       setCTSFlowControlOff(); // Dont wont to blocked, if serial not able to send
       Serial.printf(PSTR("\r\033[2KProgress: %u%%"), (progress / (total / 100)));
-      setCTSFlowControlOn(); // Dont wont to blocked, if serial not able to send
     }
     updateProgressFilter++;
   });
@@ -95,25 +72,6 @@ void setup() {
     }
   });
   ArduinoOTA.begin();
-
-  Serial.print(F("Syncing time ..."));
-  timezoneSetup();
-  Serial.print(F(" DONE\r\n"));
-
-  delay(250); //as we dont have flow control - give the RC2014 time to consume serial data
-  Serial.print(F("Local Time is: "));
-  Serial.print(myTimeZone.dateTime());
-
-  delay(250); //as we dont have flow control - give the RC2014 time to consume serial data
-  Serial.print(F("\r\nIP address: "));
-  Serial.print(WiFi.localIP());
-
-  delay(250); //as we dont have flow control - give the RC2014 time to consume serial data
-  Serial.print(F("\r\nCPU Speed: "));
-  Serial.print(ESP.getCpuFreqMHz());
-
-  delay(250); //as we dont have flow control - give the RC2014 time to consume serial data
-  Serial.print(F("MHz\r\nREADY\r\n"));
 
   setCTSFlowControlOn();
 }
