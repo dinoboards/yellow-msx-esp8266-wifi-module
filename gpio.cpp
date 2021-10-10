@@ -1,11 +1,9 @@
 #include "gpio.h"
 #include <Arduino.h>
 
-
 #define SERIAL_RX_LED 5
 #define SERIAL_TX_LED 4
 #define MAIN_LED_PIN 2
-
 
 #define RX_PIN 3
 
@@ -15,11 +13,7 @@
 int rxLedHoldCounter = 0;
 int txLedHoldCounter = 0;
 
-enum MainLedState {
-  Off,
-  WifiConnected,
-  TcpConnection
-};
+enum MainLedState { Off, WifiConnected, TcpConnection };
 
 MainLedState mainLedState = Off;
 bool mainLedOn = false;
@@ -100,5 +94,5 @@ void setCTSFlowControlOn() {
 
 void setCTSFlowControlOff() {
   pinMode(CTSPin, FUNCTION_4); // make pin U0CTS
-  U0C0 &= ~(1 << UCTXHFE);      // Reset bit to deactivate hardware flow control
+  U0C0 &= ~(1 << UCTXHFE);     // Reset bit to deactivate hardware flow control
 }

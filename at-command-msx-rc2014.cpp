@@ -1,10 +1,10 @@
 #include "at-command-msx-rc2014.h"
+#include "at-command-parser.h"
 #include "at-command-time.h"
 #include "at-command-wifi.h"
-#include "at-command-parser.h"
 #include "gpio.h"
-#include <SoftwareSerial.h>
 #include <ESP8266WiFi.h>
+#include <SoftwareSerial.h>
 #include <ezTime.h>
 
 #define VERSION "1.0.0"
@@ -75,9 +75,9 @@ void firmwareInit(const bool assumeNoFlowControl) {
 
     events();
     Serial.print(F("\r\nNTP: "));
-    if(timeStatus() != timeSet) {
+    if (timeStatus() != timeSet) {
       count = 10;
-			while (timeStatus() != timeSet && count > 0) {
+      while (timeStatus() != timeSet && count > 0) {
         delay(250);
         events();
         Serial.print(F("."));
@@ -85,7 +85,7 @@ void firmwareInit(const bool assumeNoFlowControl) {
       Serial.print(F(" "));
     }
 
-    if(timeStatus() == timeSet)
+    if (timeStatus() == timeSet)
       Serial.print(F("Synced"));
     else
       Serial.print(F("Not synced"));
@@ -94,11 +94,10 @@ void firmwareInit(const bool assumeNoFlowControl) {
       delay(250);
 
     Serial.print(F("\r\nTime: "));
-    if(timeStatus() == timeSet) {
+    if (timeStatus() == timeSet) {
       myTimeZone.setCache(0);
       Serial.print(myTimeZone.dateTime(ISO8601));
-    }
-    else
+    } else
       Serial.print(F("Not Set or synced."));
 
     Serial.print("\r\nTimezone: ");

@@ -57,6 +57,15 @@ eg:
 
 After issuing this command, the system will expect a XMODEM ACK signal to begin transferring (C for CRC)
 
+
+`at+freememory?`
+
+Returns details of heap and stack memory free blocks
+
+`at+reset`
+
+Issues a soft reset for the ESP8266 module
+
 ## Uploading script to RC2014 Wifi Module.
 
 Uploading this firmware to the module requires a few things.  The following describes the key steps using the Arduino IDE.

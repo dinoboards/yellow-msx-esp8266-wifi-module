@@ -6,10 +6,10 @@
   Serial to (telnet) TCP bridge
 *********/
 
+#include "at-command-msx-rc2014.h"
 #include "at-command-parser.h"
 #include "at-command-time.h"
 #include "at-command-web-get.h"
-#include "at-command-msx-rc2014.h"
 #include "gpio.h"
 #include "parse-string.h"
 #include "passthrough-escaping.h"
@@ -43,9 +43,7 @@ void setup() {
   if (WiFi.status() != WL_CONNECTED)
     return;
 
-  ArduinoOTA.onStart([]() {
-    Serial.print(F("Updating ESP8266 Firmware\r\n"));
-  });
+  ArduinoOTA.onStart([]() { Serial.print(F("Updating ESP8266 Firmware\r\n")); });
 
   ArduinoOTA.onEnd([]() { Serial.print(F("\r\nCompleted Download.\r\n")); });
 
@@ -125,9 +123,8 @@ void loop() {
     }
 
     timeOfLastIncomingByte = millis();
-  } else
-    if (isXModemSendingMode())
-      xmodemLoop();
+  } else if (isXModemSendingMode())
+    xmodemLoop();
 
   if (isPassthroughMode())
     if (client.available() > 0) {

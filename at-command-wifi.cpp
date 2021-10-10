@@ -1,8 +1,8 @@
 #include "at-command-wifi.h"
 #include "at-command-parser.h"
+#include "gpio.h"
 #include "parse-string.h"
 #include "system-operation-mode.h"
-#include "gpio.h"
 #include <ESP8266WiFi.h>
 #include <SoftwareSerial.h>
 
@@ -36,4 +36,3 @@ void atCommandWifi() {
   Serial.print(WiFi.localIP());
   Serial.print(F("\r\nOK\r\n"));
 }
-
