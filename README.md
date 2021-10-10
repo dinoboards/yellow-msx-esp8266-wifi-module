@@ -31,6 +31,31 @@ Return to command mode from passthrough mode.  Must have 1 second prior to seque
 
 > NB: any connection establish are not disconnected.
 
+`ATE0`
+
+Turn off local echo
+
+`ATE0`
+
+Turn on local echo
+
+`at+locale=<local>`
+
+Configure the local string to use for time conversion.  eg to set to Australia/Melbourne time zone: `at+locale=Australia/Melbourne`
+
+`at+time?`
+
+Get the current time
+
+`at+wget`
+
+Retrieve a file over http and transmit thru the serial port using xmodem protocol
+
+eg:
+
+`at+wgethttp://192.168.1.1:3000/somefile.txt`
+
+After issuing this command, the system will expect a XMODEM ACK signal to begin transferring (C for CRC)
 
 ## Uploading script to RC2014 Wifi Module.
 
@@ -74,4 +99,21 @@ Recommended you remove the Module from the backplane.
 
 10. Move the 3 jumpers back to the run configuration
 
-\* Check windows' Device Manager to find your COM port if you dont know which one the FTDI selected.
+\* Check windows' Device Manager to find your COM port if you don't know which one the FTDI selected.
+
+
+## Using VS Code
+
+You can also compile and upload the Arduino sketch using vscode.
+
+You will need to install the Arduino extension and install the required Arduino library (such as ezTime)
+
+The configuration of the board and ports can be managed with the extension's command and are stored in this file `.vscode/arduino.json`.  You will need to change the port to your specific port:
+
+```
+    "port": "192.168.86.203",
+```
+    to
+```
+    "port": "COM3",
+```
