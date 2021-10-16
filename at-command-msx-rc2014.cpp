@@ -3,11 +3,10 @@
 #include "at-command-time.h"
 #include "at-command-wifi.h"
 #include "gpio.h"
+#include "version.h"
 #include <ESP8266WiFi.h>
 #include <SoftwareSerial.h>
 #include <ezTime.h>
-
-#define VERSION "1.0.0"
 
 void firmwareInit(const bool assumeNoFlowControl) {
   int count;

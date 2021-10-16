@@ -4,6 +4,7 @@
 #include "client-connection.h"
 #include "gpio.h"
 #include "system-operation-mode.h"
+#include "version.h"
 #include <Arduino.h>
 #include <ESP8266HTTPClient.h>
 #include <ESP8266WiFi.h>
@@ -241,6 +242,9 @@ void atCommandWebGet() {
     wifiClient = new WiFiClient();
 
   httpClient = new HTTPClient();
+  httpClient->setReuse(false);
+  httpClient->setUserAgent(F("MSX on RC2014/" VERSION " (ESP8266HTTPClient)"));
+  httpClient->useHTTP10(true);
 
   const bool r = httpClient->begin(*wifiClient, url);
   const bool connected = httpClient->connected();
@@ -249,7 +253,7 @@ void atCommandWebGet() {
 
   int httpCode = httpClient->GET();
   if (httpCode <= 0) {
-    Serial.printf(PSTR("ERROR: GET '%s' returned error: %s. (%d, %d)\r\n"), url.c_str(),  httpClient->errorToString(httpCode).c_str(), (int)r, (int)connected);
+    Serial.printf(PSTR("ERROR: GET '%s' returned error: %s. (%d, %d)\r\n"), url.c_str(), httpClient->errorToString(httpCode).c_str(), (int)r, (int)connected);
     return;
   }
 
