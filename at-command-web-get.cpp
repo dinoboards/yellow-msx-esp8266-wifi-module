@@ -27,11 +27,12 @@
 
 // BearSSL::CertStoreP certStore;
 
-enum XModemState { XMODEMSTATE_NONE = 1, XMODEMSTATE_WAIT_FOR_START, XMODEMSTATE_NAK, XMODEMSTATE_ACK, XMODEMSTATE_FINAL_ACK };
+enum XModemState { XMODEMSTATE_NONE = 1, XMODEMSTATE_WAIT_FOR_START, XMODEMSTATE_NAK_SOH, XMODEMSTATE_NAK_EOT, XMODEMSTATE_NAK_CAN, XMODEMSTATE_ACK, XMODEMSTATE_FINAL_ACK };
 
 char packetBuffer[128];
 
 XModemState xmodemState = XMODEMSTATE_NONE;
+XModemState xmodemRetryState;
 unsigned char packetNo = 0;
 int crcBuf;
 unsigned char checksumBuf;
@@ -42,7 +43,6 @@ WiFiClient *wifiClient;
 HTTPClient *httpClient;
 int fileSize;
 bool lastPacketSent;
-unsigned char nextPacketHeader;
 
 void calculateChecksums() {
   checksumBuf = 0x00;
@@ -77,66 +77,65 @@ XModemState xmodemCompleted() {
   return XMODEMSTATE_NONE;
 }
 
-void prepareNextPacket() {
+XModemState prepareNextPacket() {
   memset(packetBuffer, EOF, 128);
 
-  if (fileSize == 0 || lastPacketSent || !httpClient->connected()) {
-    nextPacketHeader = EOT;
-    return;
-  }
+  if (fileSize == -1) {
+    if (httpClient->connected() && !lastPacketSent) {
+      int c = wifiClient->readBytes(packetBuffer, sizeof(packetBuffer));
+      if (c == 0) {
+        return XMODEMSTATE_NAK_EOT;
+      }
 
-  if (httpClient->connected() && fileSize == -1) {
-    int c = wifiClient->readBytes(packetBuffer, sizeof(packetBuffer));
-    if (c == 0) {
-      nextPacketHeader = EOT;
-      return;
+      lastPacketSent = c != sizeof(packetBuffer);
+
+      calculateChecksums();
+      return XMODEMSTATE_NAK_SOH;
     }
 
-    lastPacketSent = c != sizeof(packetBuffer);
-    nextPacketHeader = SOH;
+    return XMODEMSTATE_NAK_EOT;
+  }
 
-    calculateChecksums();
-    return;
+  if (fileSize == 0 || !httpClient->connected()) {
+    return XMODEMSTATE_NAK_EOT;
   }
 
   int c = wifiClient->readBytes(packetBuffer, std::min((size_t)fileSize, sizeof(packetBuffer)));
   if (!c) {
-    nextPacketHeader = CAN;
-    return;
+    return XMODEMSTATE_NAK_CAN;
   }
 
   fileSize -= c;
-  nextPacketHeader = SOH;
   calculateChecksums();
+  return XMODEMSTATE_NAK_SOH;
 }
 
-XModemState sendPacket() {
-  switch (nextPacketHeader) {
-  case SOH:
-    Serial.write(SOH);
-    Serial.write(packetNo);
-    Serial.write(~packetNo);
-    Serial.write(packetBuffer, 128);
-    if (oldChecksum)
-      Serial.write((char)checksumBuf);
-    else {
-      Serial.write((char)(crcBuf >> 8));
-      Serial.write((char)(crcBuf & 0xFF));
-    }
-    return XMODEMSTATE_ACK;
+XModemState sendEOT() {
+  httpClient->end();
+  Serial.write(EOT);
+  return XMODEMSTATE_FINAL_ACK;
+}
 
-  case EOT:
-    httpClient->end();
-    Serial.write(EOT);
-    return XMODEMSTATE_FINAL_ACK;
+XModemState sendCAN() {
+  Serial.write(CAN);
+  Serial.write(CAN);
+  Serial.write(CAN);
+  Serial.print(F("Send Packet Cancelled\r\n"));
+  return xmodemCompleted();
+}
 
-  default:
-    Serial.write(CAN);
-    Serial.write(CAN);
-    Serial.write(CAN);
-    Serial.print(F("Send Packet Cancelled\r\n"));
-    return xmodemCompleted();
+XModemState sendPreparedPacket() {
+  Serial.write(SOH);
+  Serial.write(packetNo);
+  Serial.write(~packetNo);
+  Serial.write(packetBuffer, 128);
+  if (oldChecksum)
+    Serial.write((char)checksumBuf);
+  else {
+    Serial.write((char)(crcBuf >> 8));
+    Serial.write((char)(crcBuf & 0xFF));
   }
+  return XMODEMSTATE_ACK;
 }
 
 void xmodemLoop() {
@@ -149,13 +148,22 @@ void xmodemLoop() {
       xmodemCompleted();
     return;
 
-  case XMODEMSTATE_NAK:
-    xmodemState = sendPacket();
+  case XMODEMSTATE_NAK_SOH:
+    xmodemRetryState = xmodemState = sendPreparedPacket();
     timeout = millis() + 10000;
     return;
 
+  case XMODEMSTATE_NAK_EOT:
+    xmodemRetryState = xmodemState = sendEOT();
+    timeout = millis() + 10000;
+    return;
+
+  case XMODEMSTATE_NAK_CAN:
+    xmodemRetryState = xmodemState = sendCAN();
+    return;
+
   case XMODEMSTATE_ACK:
-  case XMODEMSTATE_FINAL_ACK: {
+  case XMODEMSTATE_FINAL_ACK:
     const unsigned long m = millis();
     if (m > timeout) {
       Serial.write(CAN);
@@ -166,22 +174,19 @@ void xmodemLoop() {
       return;
     }
   }
-    return;
-  }
 }
 
 void xmodemReceiveChar(unsigned char incoming) {
   switch (xmodemState) {
   case XMODEMSTATE_WAIT_FOR_START:
+    xmodemState = xmodemRetryState;
     switch (incoming) {
     case 'C':
       oldChecksum = false;
-      xmodemState = XMODEMSTATE_NAK;
       break;
 
     case NAK:
       oldChecksum = true;
-      xmodemState = XMODEMSTATE_NAK;
       break;
     }
     break;
@@ -193,13 +198,12 @@ void xmodemReceiveChar(unsigned char incoming) {
       return;
 
     case ACK:
-      xmodemState = XMODEMSTATE_NAK;
+      xmodemState = prepareNextPacket();
       packetNo++;
-      prepareNextPacket();
       return;
 
     case NAK:
-      xmodemState = XMODEMSTATE_NAK;
+      xmodemState = xmodemRetryState;
       return;
     }
     break;
@@ -270,6 +274,6 @@ void atCommandWebGet() {
   timeout = millis() + 10000; // Timeout in ten second if we dont get 'C' or 'NAK'
   operationMode = XmodemSending;
   lastPacketSent = false;
-  prepareNextPacket();
+  xmodemRetryState = prepareNextPacket();
   xmodemState = XMODEMSTATE_WAIT_FOR_START;
 }
