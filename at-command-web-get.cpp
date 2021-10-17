@@ -29,26 +29,26 @@
 
 enum XModemState { XMODEMSTATE_NONE = 1, XMODEMSTATE_WAIT_FOR_START, XMODEMSTATE_NAK_SOH, XMODEMSTATE_NAK_EOT, XMODEMSTATE_NAK_CAN, XMODEMSTATE_ACK, XMODEMSTATE_FINAL_ACK };
 
-char packetBuffer[128];
+char *packetBuffer;
 
 XModemState xmodemState = XMODEMSTATE_NONE;
 XModemState xmodemRetryState;
 unsigned char packetNo = 0;
 int crcBuf;
 unsigned char checksumBuf;
-int packetLen = 128;
 unsigned long timeout;
 bool oldChecksum;
 WiFiClient *wifiClient;
 HTTPClient *httpClient;
 int fileSize;
 bool lastPacketSent;
+int packetLength = 128;
 
 void calculateChecksums() {
   checksumBuf = 0x00;
   crcBuf = 0x00;
 
-  for (int i = 0; i < 128; i++) {
+  for (int i = 0; i < packetLength; i++) {
     char j;
     const unsigned char inChar = packetBuffer[i];
     checksumBuf += inChar;
@@ -68,21 +68,24 @@ XModemState xmodemCompleted() {
   xmodemState = XMODEMSTATE_NONE;
   operationMode = CommandMode;
 
-  delete httpClient;
-  delete wifiClient;
+  free(packetBuffer);
+  packetBuffer = NULL;
 
+  delete httpClient;
   httpClient = NULL;
+
+  delete wifiClient;
   wifiClient = NULL;
 
   return XMODEMSTATE_NONE;
 }
 
 XModemState prepareNextPacket() {
-  memset(packetBuffer, EOF, 128);
+  memset(packetBuffer, EOF, packetLength);
 
   if (fileSize == -1) {
     if (httpClient->connected() && !lastPacketSent) {
-      int c = wifiClient->readBytes(packetBuffer, sizeof(packetBuffer));
+      int c = wifiClient->readBytes(packetBuffer, packetLength);
       if (c == 0) {
         return XMODEMSTATE_NAK_EOT;
       }
@@ -100,7 +103,7 @@ XModemState prepareNextPacket() {
     return XMODEMSTATE_NAK_EOT;
   }
 
-  int c = wifiClient->readBytes(packetBuffer, std::min((size_t)fileSize, sizeof(packetBuffer)));
+  int c = wifiClient->readBytes(packetBuffer, std::min(fileSize, packetLength));
   if (!c) {
     return XMODEMSTATE_NAK_CAN;
   }
@@ -125,10 +128,10 @@ XModemState sendCAN() {
 }
 
 XModemState sendPreparedPacket() {
-  Serial.write(SOH);
+  Serial.write(packetLength == 128 ? SOH : STX);
   Serial.write(packetNo);
   Serial.write(~packetNo);
-  Serial.write(packetBuffer, 128);
+  Serial.write(packetBuffer, packetLength);
   if (oldChecksum)
     Serial.write((char)checksumBuf);
   else {
@@ -223,7 +226,13 @@ void xmodemReceiveChar(unsigned char incoming) {
 }
 
 void atCommandWebGet() {
-  const String url = lineBuffer.substring(7);
+  packetLength = lineBuffer[7] == '1' ? 1024 : 128;
+
+  const String url = lineBuffer[7] == '1' ? lineBuffer.substring(8) : lineBuffer.substring(7);
+
+  if (packetBuffer)
+    free(packetBuffer);
+  packetBuffer = (char*)malloc(packetLength);
 
   if (httpClient)
     delete httpClient;
