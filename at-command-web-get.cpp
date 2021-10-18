@@ -24,10 +24,12 @@
 #define NAK 0x15
 #define CAN 0x18
 #define EOF 0x1a
+//INFO PACKET MARKER
+#define RS 0x1e
 
 // BearSSL::CertStoreP certStore;
 
-enum XModemState { XMODEMSTATE_NONE = 1, XMODEMSTATE_WAIT_FOR_START, XMODEMSTATE_NAK_SOH, XMODEMSTATE_NAK_EOT, XMODEMSTATE_NAK_CAN, XMODEMSTATE_ACK, XMODEMSTATE_FINAL_ACK };
+enum XModemState { XMODEMSTATE_NONE = 1, XMODEMSTATE_WAIT_FOR_START, XMODEMSTATE_NAK_SOH, XMODEMSTATE_NAK_EOT, XMODEMSTATE_INFO, XMODEMSTATE_NAK_CAN, XMODEMSTATE_ACK, XMODEMSTATE_FINAL_ACK, XMODEMSTATE_FINAL_INFO_ACK };
 
 char *packetBuffer;
 
@@ -41,6 +43,7 @@ bool oldChecksum;
 WiFiClient *wifiClient;
 HTTPClient *httpClient;
 int fileSize;
+int32_t actualFileSize;
 bool lastPacketSent;
 int packetLength = 128;
 
@@ -68,19 +71,33 @@ XModemState xmodemCompleted() {
   xmodemState = XMODEMSTATE_NONE;
   operationMode = CommandMode;
 
-  free(packetBuffer);
-  packetBuffer = NULL;
+  if (packetBuffer) {
+    free(packetBuffer);
+    packetBuffer = NULL;
+  }
 
-  delete httpClient;
-  httpClient = NULL;
+  if (httpClient) {
+    delete httpClient;
+    httpClient = NULL;
+  }
 
-  delete wifiClient;
-  wifiClient = NULL;
+  if (wifiClient) {
+    delete wifiClient;
+    wifiClient = NULL;
+  }
+
+  setCTSFlowControlOff();// We crash if we overfill the buffer
+  Serial.flush();
+  setCTSFlowControlOn();
 
   return XMODEMSTATE_NONE;
 }
 
 XModemState prepareNextPacket() {
+  if(!packetBuffer) {
+    Serial.write("ERROR\r\n");
+    return xmodemCompleted();
+  }
   memset(packetBuffer, EOF, packetLength);
 
   if (fileSize == -1) {
@@ -89,7 +106,7 @@ XModemState prepareNextPacket() {
       if (c == 0) {
         return XMODEMSTATE_NAK_EOT;
       }
-
+      actualFileSize += c;
       lastPacketSent = c != sizeof(packetBuffer);
 
       calculateChecksums();
@@ -104,6 +121,7 @@ XModemState prepareNextPacket() {
   }
 
   int c = wifiClient->readBytes(packetBuffer, std::min(fileSize, packetLength));
+  actualFileSize += c;
   if (!c) {
     return XMODEMSTATE_NAK_CAN;
   }
@@ -141,6 +159,28 @@ XModemState sendPreparedPacket() {
   return XMODEMSTATE_ACK;
 }
 
+XModemState sendInfo() {
+  if(!packetBuffer) {
+    Serial.write("ERROR\r\n");
+    return xmodemCompleted();
+  }
+  memset(packetBuffer, 0, packetLength);
+  sprintf(packetBuffer, "FILE=%s;LEN=%d;", "????.??", actualFileSize);
+  calculateChecksums();
+
+  Serial.write(RS);
+  Serial.write(0);
+  Serial.write(~0);
+  Serial.write(packetBuffer, packetLength);
+  if (oldChecksum)
+    Serial.write((char)checksumBuf);
+  else {
+    Serial.write((char)(crcBuf >> 8));
+    Serial.write((char)(crcBuf & 0xFF));
+  }
+  return XMODEMSTATE_FINAL_INFO_ACK;
+}
+
 void xmodemLoop() {
   switch (xmodemState) {
   case XMODEMSTATE_NONE:
@@ -153,22 +193,29 @@ void xmodemLoop() {
 
   case XMODEMSTATE_NAK_SOH:
     xmodemRetryState = xmodemState = sendPreparedPacket();
-    timeout = millis() + 10000;
+    timeout = millis() + 2000;
     return;
 
   case XMODEMSTATE_NAK_EOT:
     xmodemRetryState = xmodemState = sendEOT();
-    timeout = millis() + 10000;
+    timeout = millis() + 2000;
     return;
 
   case XMODEMSTATE_NAK_CAN:
     xmodemRetryState = xmodemState = sendCAN();
     return;
 
+  case XMODEMSTATE_INFO:
+    xmodemRetryState = xmodemState = sendInfo();
+    timeout = millis() + 2000;
+    return;
+
   case XMODEMSTATE_ACK:
   case XMODEMSTATE_FINAL_ACK:
+  case XMODEMSTATE_FINAL_INFO_ACK:
     const unsigned long m = millis();
     if (m > timeout) {
+      Serial.flush();
       Serial.write(CAN);
       Serial.write(CAN);
       Serial.write(CAN);
@@ -217,6 +264,15 @@ void xmodemReceiveChar(unsigned char incoming) {
       xmodemCompleted();
       return;
 
+    case ACK:
+      xmodemState = XMODEMSTATE_INFO;
+      return;
+    }
+    break;
+
+  case XMODEMSTATE_FINAL_INFO_ACK:
+    switch (incoming) {
+    case CAN:
     case ACK:
       xmodemCompleted();
       return;
@@ -278,6 +334,7 @@ void atCommandWebGet() {
   Serial.write(PSTR("OK\r\n"));
 
   fileSize = httpClient->getSize();
+  actualFileSize = 0;
 
   packetNo = 1;
   timeout = millis() + 10000; // Timeout in ten second if we dont get 'C' or 'NAK'

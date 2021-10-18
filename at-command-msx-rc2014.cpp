@@ -76,7 +76,7 @@ void firmwareInit(const bool assumeNoFlowControl) {
     pgm_serial_slow_print(PSTR("\r\nNTP: "), assumeNoFlowControl);
     if (timeStatus() != timeSet) {
       count = 10;
-      while (timeStatus() != timeSet && count > 0) {
+      while (timeStatus() != timeSet && count-- > 0) {
         events();
         serial_slow_write('.', assumeNoFlowControl);
       }
