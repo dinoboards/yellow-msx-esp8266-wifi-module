@@ -24,7 +24,7 @@
 #define NAK 0x15
 #define CAN 0x18
 #define EOF 0x1a
-//INFO PACKET MARKER
+// INFO PACKET MARKER
 #define RS 0x1e
 
 // BearSSL::CertStoreP certStore;
@@ -86,7 +86,7 @@ XModemState xmodemCompleted() {
     wifiClient = NULL;
   }
 
-  setCTSFlowControlOff();// We crash if we overfill the buffer
+  setCTSFlowControlOff(); // We crash if we overfill the buffer
   Serial.flush();
   setCTSFlowControlOn();
 
@@ -94,7 +94,7 @@ XModemState xmodemCompleted() {
 }
 
 XModemState prepareNextPacket() {
-  if(!packetBuffer) {
+  if (!packetBuffer) {
     Serial.write("ERROR\r\n");
     return xmodemCompleted();
   }
@@ -107,7 +107,7 @@ XModemState prepareNextPacket() {
         return XMODEMSTATE_NAK_EOT;
       }
       actualFileSize += c;
-      lastPacketSent = c != sizeof(packetBuffer);
+      lastPacketSent = c != packetLength;
 
       calculateChecksums();
       return XMODEMSTATE_NAK_SOH;
@@ -160,7 +160,7 @@ XModemState sendPreparedPacket() {
 }
 
 XModemState sendInfo() {
-  if(!packetBuffer) {
+  if (!packetBuffer) {
     Serial.write("ERROR\r\n");
     return xmodemCompleted();
   }
@@ -288,7 +288,7 @@ void atCommandWebGet() {
 
   if (packetBuffer)
     free(packetBuffer);
-  packetBuffer = (char*)malloc(packetLength);
+  packetBuffer = (char *)malloc(packetLength);
 
   if (httpClient)
     delete httpClient;

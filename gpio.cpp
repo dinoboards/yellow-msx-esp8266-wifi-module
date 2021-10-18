@@ -1,15 +1,6 @@
 #include "gpio.h"
 #include <Arduino.h>
 
-#define SERIAL_RX_LED 5
-#define SERIAL_TX_LED 4
-#define MAIN_LED_PIN 2
-
-#define RX_PIN 3
-
-// GPIO13 for CTS input
-#define CTSPin 13
-
 int rxLedHoldCounter = 0;
 int txLedHoldCounter = 0;
 

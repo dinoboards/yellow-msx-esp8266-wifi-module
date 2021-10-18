@@ -15,6 +15,9 @@
     "*.inc.m4": "z80-macroasm",
     "*.mac": "z80-macroasm",
     "*.asmpp": "z80-macroasm",
-    "functional": "cpp"
+    "functional": "cpp",
+    "iosfwd": "cpp",
+    "limits": "cpp",
+    "streambuf": "cpp"
   }
 }
