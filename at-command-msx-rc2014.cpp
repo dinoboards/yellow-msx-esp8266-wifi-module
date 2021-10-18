@@ -8,112 +8,102 @@
 #include <SoftwareSerial.h>
 #include <ezTime.h>
 
+void pgm_serial_slow_print(const char *p, const bool assumeNoFlowControl) {
+  unsigned char c;
+  while(c = pgm_read_byte(p++)) {
+    Serial.write(c);
+    if (assumeNoFlowControl)
+      delay(10);
+  }
+}
+
+void serial_slow_print(const char *p, const bool assumeNoFlowControl) {
+  unsigned char c;
+  while(c = *p++) {
+    Serial.write(c);
+    if (assumeNoFlowControl)
+      delay(10);
+  }
+}
+
+void serial_slow_write(const char c, const bool assumeNoFlowControl) {
+  Serial.write(c);
+  if (assumeNoFlowControl)
+    delay(15);
+}
+
 void firmwareInit(const bool assumeNoFlowControl) {
   int count;
-  Serial.print(F("\r\nESP8266 Firmware for MSX on RC2014\r\n"));
+  pgm_serial_slow_print(PSTR("\r\nESP8266 Firmware for MSX on RC2014\r\n"), assumeNoFlowControl);
 
-  if (assumeNoFlowControl)
-    delay(250);
+  pgm_serial_slow_print(PSTR("Version: " VERSION "\r\n"), assumeNoFlowControl);
 
-  Serial.print(F("Version: " VERSION "\r\n"));
-
-  if (assumeNoFlowControl)
-    delay(250);
-
-  Serial.print(F("Built: " __DATE__ " at " __TIME__ "\r\n"));
-
-  if (assumeNoFlowControl)
-    delay(250);
+  pgm_serial_slow_print(PSTR("Built: " __DATE__ " at " __TIME__ "\r\n"), assumeNoFlowControl);
 
   const bool haveWifiCredentials = !((WiFi.SSID() == F("")) || (WiFi.SSID() == NULL));
 
   if (!haveWifiCredentials) {
-    Serial.print(F("Wifi Status: No Credentials Stored\r\nREADY\r\n"));
+    pgm_serial_slow_print(PSTR("Wifi Status: No Credentials Stored\r\nREADY\r\n"), assumeNoFlowControl);
     return;
   }
 
-  if (assumeNoFlowControl)
-    delay(250);
-
   if (WiFi.status() != WL_CONNECTED) {
-    Serial.print(F("Wifi Status: Connecting ."));
+    pgm_serial_slow_print(PSTR("Wifi Status: Connecting ."), assumeNoFlowControl);
     count = 20;
     while (WiFi.status() != WL_CONNECTED && count >= 0) {
       delay(500);
-      Serial.print(F("."));
+      Serial.write('.');
       count--;
     }
   } else {
-    Serial.print(F("Wifi Status:"));
+    pgm_serial_slow_print(PSTR("Wifi Status:"), assumeNoFlowControl);
   }
 
-  if (assumeNoFlowControl)
-    delay(250);
-
   if (WiFi.status() != WL_CONNECTED) {
-    Serial.print(F(" Not Connected "));
+    pgm_serial_slow_print(PSTR(" Not Connected "), assumeNoFlowControl);
     Serial.print(WiFi.status());
-
-    if (assumeNoFlowControl)
-      delay(250);
-
-    Serial.print(F("\r\nSSID: "));
-    Serial.print(WiFi.SSID());
+    pgm_serial_slow_print(PSTR("\r\nSSID: "), assumeNoFlowControl);
+    serial_slow_print(WiFi.SSID().c_str(), assumeNoFlowControl);
   } else {
     wifiLedOn();
-    Serial.print(F(" Connected"));
+    pgm_serial_slow_print(PSTR(" Connected\r\nSSID: "), assumeNoFlowControl);
+    serial_slow_print(WiFi.SSID().c_str(), assumeNoFlowControl);
 
-    Serial.print(F("\r\nSSID: "));
-    Serial.print(WiFi.SSID());
-
-    if (assumeNoFlowControl)
-      delay(250);
-
-    Serial.print(F("\r\nIP: "));
-    Serial.print(WiFi.localIP());
+    pgm_serial_slow_print(PSTR("\r\nIP: "), assumeNoFlowControl);
+    serial_slow_print(WiFi.localIP().toString().c_str(), assumeNoFlowControl);
 
     events();
-    Serial.print(F("\r\nNTP: "));
+    pgm_serial_slow_print(PSTR("\r\nNTP: "), assumeNoFlowControl);
     if (timeStatus() != timeSet) {
       count = 10;
       while (timeStatus() != timeSet && count > 0) {
-        delay(250);
         events();
-        Serial.print(F("."));
+        serial_slow_write('.', assumeNoFlowControl);
       }
-      Serial.print(F(" "));
+      serial_slow_write(' ', assumeNoFlowControl);
     }
 
     if (timeStatus() == timeSet)
-      Serial.print(F("Synced"));
+      pgm_serial_slow_print(PSTR("Synced"), assumeNoFlowControl);
     else
-      Serial.print(F("Not synced"));
+      pgm_serial_slow_print(PSTR("Not synced"), assumeNoFlowControl);
 
-    if (assumeNoFlowControl)
-      delay(250);
-
-    Serial.print(F("\r\nTime: "));
+    pgm_serial_slow_print(PSTR("\r\nTime: "), assumeNoFlowControl);
     if (timeStatus() == timeSet) {
       myTimeZone.setCache(0);
-      Serial.print(myTimeZone.dateTime(ISO8601));
+      serial_slow_print(myTimeZone.dateTime(ISO8601).c_str(), assumeNoFlowControl);
     } else
-      Serial.print(F("Not Set or synced."));
+      pgm_serial_slow_print(PSTR("Not Set or synced."), assumeNoFlowControl);
 
-    Serial.print("\r\nTimezone: ");
-    Serial.print(myTimeZone.getTimezoneName());
-
-    if (assumeNoFlowControl)
-      delay(250);
+    pgm_serial_slow_print(PSTR("\r\nTimezone: "), assumeNoFlowControl);
+    serial_slow_print(myTimeZone.getTimezoneName().c_str(), assumeNoFlowControl);
   }
 
-  if (assumeNoFlowControl)
-    delay(250);
-
-  Serial.print(F("\r\n"));
-  Serial.print(F("READY\r\n"));
+  pgm_serial_slow_print(PSTR("\r\nREADY\r\n"), assumeNoFlowControl);
 }
 
 void atCommandMsxRc2014() {
   Serial.print(F("OK\r\n"));
   firmwareInit(false);
 }
+

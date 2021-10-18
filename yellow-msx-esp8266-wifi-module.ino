@@ -71,6 +71,7 @@ void setup() {
   });
   ArduinoOTA.begin();
 
+  Serial.flush();
   setCTSFlowControlOn();
 }
 
