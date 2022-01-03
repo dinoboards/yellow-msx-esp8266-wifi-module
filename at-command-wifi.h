@@ -4,6 +4,7 @@
 #include <ESP8266WiFi.h>
 
 extern void atCommandWifi();
+extern void atCommandWifiPower();
 // extern const char* wifiStatusAsString(const wl_status_t status);
 
 #endif

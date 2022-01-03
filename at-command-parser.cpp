@@ -47,6 +47,11 @@ void processPotentialCommand() {
     goto done;
   }
 
+  if (lineLower.startsWith(F("at+rfpower="))) {
+    atCommandWifiPower();
+    goto done;
+  }
+
   if (lineLower == F("ath")) {
     atCommandHangup();
     goto done;

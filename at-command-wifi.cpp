@@ -36,3 +36,13 @@ void atCommandWifi() {
   Serial.print(WiFi.localIP());
   Serial.print(F("\r\nOK\r\n"));
 }
+
+void atCommandWifiPower() {
+  const int newPower = lineBuffer.substring(11).toInt();
+  WiFi.setOutputPower(newPower);
+  if (newPower == 0)
+    WiFi.mode(WIFI_OFF);
+  else
+    WiFi.mode(WIFI_STA);
+  Serial.print(F("\r\nOK\r\n"));
+}
