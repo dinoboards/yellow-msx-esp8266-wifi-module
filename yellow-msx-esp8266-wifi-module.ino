@@ -14,6 +14,7 @@
 #include "parse-string.h"
 #include "passthrough-escaping.h"
 #include "system-operation-mode.h"
+#include "flash_store.h"
 #include <ArduinoOTA.h>
 #include <ESP8266WiFi.h>
 #include <ezTime.h>
@@ -26,7 +27,9 @@ void setup() {
   enableWiFiAtBootTime(); // can be called from anywhere with the same effect
 #endif
 
-  Serial.begin(19200);
+  eeprom_setup();
+  
+  Serial.begin(eeprom_get_baud());
   setRXOpenDrain();
   setCTSFlowControlOff(); // Dont wont to have setup blocked, if serial not able to send
 
@@ -43,7 +46,11 @@ void setup() {
   if (WiFi.status() != WL_CONNECTED)
     return;
 
-  ArduinoOTA.onStart([]() { Serial.print(F("Updating ESP8266 Firmware\r\n")); });
+  ArduinoOTA.onStart([]() { 
+    eeprom_ota_reset();
+
+    Serial.print(F("Updating ESP8266 Firmware\r\n"));
+  });
 
   ArduinoOTA.onEnd([]() { Serial.print(F("\r\nCompleted Download.\r\n")); });
 
@@ -56,6 +63,8 @@ void setup() {
   });
 
   ArduinoOTA.onError([](ota_error_t error) {
+    EEPROMr.rotate(true);
+
     Serial.printf(PSTR("Error[%u]: "), error);
     if (error == OTA_AUTH_ERROR) {
       Serial.print(F("Auth Failed\r\n"));

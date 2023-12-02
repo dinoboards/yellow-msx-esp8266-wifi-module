@@ -1,9 +1,10 @@
-#include "at-command-parser.h"
 #include "at-command-dial.h"
 #include "at-command-free-memory.h"
 #include "at-command-hangup.h"
 #include "at-command-msx-rc2014.h"
+#include "at-command-parser.h"
 #include "at-command-time.h"
+#include "at-command-uart.h"
 #include "at-command-web-get.h"
 #include "at-command-wifi.h"
 #include <Arduino.h>
@@ -96,6 +97,11 @@ void processPotentialCommand() {
   if (lineLower == F("at+reset")) {
     Serial.print("OK\r\n");
     ESP.reset();
+    goto done;
+  }
+
+  if (lineLower.startsWith(F("at+baud="))) {
+    atCommandSetBaud();
     goto done;
   }
 
